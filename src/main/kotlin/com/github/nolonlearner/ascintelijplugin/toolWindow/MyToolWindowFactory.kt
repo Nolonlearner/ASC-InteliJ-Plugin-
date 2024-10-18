@@ -40,6 +40,11 @@ class MyToolWindowFactory : ToolWindowFactory {
                     label.text = MyBundle.message("randomLabel", service.getRandomNumber())
                 }
             })
+            add(JButton(MyBundle.message("test")).apply {
+                addActionListener {
+                    label.text = MyBundle.message("testLabel", service.getRandomNumber())
+                }
+            })
         }
     }
 }
