@@ -1,3 +1,10 @@
+package com.github.nolonlearner.ascintelijplugin.services;
+
+public class MyProjectService {
+}
+
+
+/*
 package com.github.nolonlearner.ascintelijplugin.services
 
 import com.intellij.openapi.components.Service
@@ -15,3 +22,4 @@ class MyProjectService(project: Project) {
 
     fun getRandomNumber() = (1..100).random()
 }
+ */
