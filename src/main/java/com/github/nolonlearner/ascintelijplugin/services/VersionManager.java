@@ -13,8 +13,8 @@ public class VersionManager {
     // 添加版本记录
     public void addVersion(String filePath, VersionRecord versionRecord) {
         fileVersionHistory
-                .computeIfAbsent(filePath, k -> new LinkedList<>()) // 如果没有历史记录，则创建新链表
-                .add(versionRecord); // 添加新版本记录
+                .computeIfAbsent(filePath, k -> new LinkedList<>())
+                .addLast(versionRecord); // 确保添加到链表末尾
     }
 
     // 获取指定文件的所有版本记录
@@ -25,7 +25,7 @@ public class VersionManager {
     // 获取最新版本
     public VersionRecord getLatestVersion(String filePath) {
         LinkedList<VersionRecord> versions = getVersions(filePath);
-        return versions.isEmpty() ? null : versions.getLast();
+        return versions.isEmpty() ? null : versions.getLast(); // 获取最后一个版本
     }
 
     // 生成版本ID和时间戳
@@ -42,6 +42,6 @@ public class VersionManager {
         String versionId = generateVersionId(); // 生成版本 ID
         String timestamp = getCurrentTimestamp(); // 获取时间戳
         VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes);
-        addVersion(filePath, newVersion);
+        addVersion(filePath, newVersion); // 保存新版本到历史中
     }
 }
