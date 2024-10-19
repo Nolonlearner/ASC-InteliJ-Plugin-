@@ -19,6 +19,7 @@ public class GitManager {
     private void runGitCommand(String command, Project project) {
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command("bash", "-c", command);
+        
         processBuilder.directory(new java.io.File(project.getBasePath())); // 指定项目目录
 
         try {
