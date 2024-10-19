@@ -9,11 +9,13 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="VersionControlToolWindow" factoryClass="com.github.nolonlearner.ascintelijplugin.toolWindow.VersionControlToolWindowFactory" />
+        <toolWindow id="VersionControlToolWindow"
+                    factoryClass="com.github.nolonlearner.ascintelijplugin.toolWindow.VersionControlToolWindowFactory" />
     </extensions>
 
 
     <applicationListeners>
-        <listener class="com.github.nolonlearner.ascintelijplugin.listeners.MyApplicationActivationListener" topic="com.intellij.openapi.application.ApplicationActivationListener"/>
+        <listener class="com.github.nolonlearner.ascintelijplugin.listeners.MyApplicationActivationListener"
+                  topic="com.intellij.openapi.application.ApplicationActivationListener"/>
     </applicationListeners>
 </idea-plugin>

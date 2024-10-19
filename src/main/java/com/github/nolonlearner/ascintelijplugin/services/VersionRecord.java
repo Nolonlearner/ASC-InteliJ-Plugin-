@@ -1,4 +1,5 @@
 package com.github.nolonlearner.ascintelijplugin.services;
+// src/main/java/com/github/nolonlearner/ascintelijplugin/services/VersionRecord.java
 import java.util.List;
 
 public class VersionRecord {
