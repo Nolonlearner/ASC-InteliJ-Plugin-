@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.editor.event.EditorFactoryEvent;
 import com.intellij.openapi.editor.event.EditorFactoryListener;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -40,7 +41,7 @@ public class ListenerManager implements EditorFactoryListener {
     public void editorCreated(EditorFactoryEvent event) {
         // 获取当前编辑器的文档
         Document document = event.getEditor().getDocument();
-        VirtualFile currentFile = getCurrentOpenFile();
+        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(document);
 
         System.out.println("editorCreated document: " + document);
         System.out.println("editorCreated currentFile: " +currentFile);
