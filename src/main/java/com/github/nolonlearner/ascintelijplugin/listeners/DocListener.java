@@ -18,6 +18,8 @@ public class DocListener implements DocumentListener {
     }
 
     public DocListener(Document document) {
+        System.out.println("DocListener 构造函数");
+        System.out.println("document: " + document);
         this.document = document;
         this.oldText = document.getText();// 初始化的时候获取文档的文本内容
         this.newText = document.getText();// 新文本内容和旧文本内容相同

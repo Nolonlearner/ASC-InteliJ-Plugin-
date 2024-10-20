@@ -14,16 +14,25 @@ public class DocVirtualListener implements VirtualFileListener {
     @Override
     public void contentsChanged(@NotNull VirtualFileEvent event) {// 内容改变
         System.out.println("内容改变");
+        System.out.println(event.getFile().getPath());
+        System.out.println(event.getFile().getName());
+        System.out.println(event.getFile().getFileType());
     }
 
     @Override
     public void fileCreated(@NotNull VirtualFileEvent event) {// 文件创建
         System.out.println("文件创建");
+        System.out.println(event.getFile().getPath());
+        System.out.println(event.getFile().getName());
+        System.out.println(event.getFile().getFileType());
     }
 
     @Override
     public void fileDeleted(@NotNull VirtualFileEvent event) {// 文件删除
         System.out.println("文件删除");
+        System.out.println(event.getFile().getPath());
+        System.out.println(event.getFile().getName());
+        System.out.println(event.getFile().getFileType());
     }
 
     @Override

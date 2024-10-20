@@ -42,6 +42,10 @@ public class ListenerManager implements EditorFactoryListener {
         Document document = event.getEditor().getDocument();
         VirtualFile currentFile = getCurrentOpenFile();
 
+        System.out.println("editorCreated document: " + document);
+        System.out.println("editorCreated currentFile: " +currentFile);
+
+
         if (currentFile != null && !documentListenerMap.containsKey(currentFile)) {
             // 创建并注册 DocumentListener
             DocListener docListener = new DocListener(document);
@@ -50,6 +54,12 @@ public class ListenerManager implements EditorFactoryListener {
         }
 
         System.out.println("编辑器创建，当前文件: " + currentFile.getPath());
+        // 此处有bug，创建一个编辑器后，再打开别的编辑器，会两次触发相同的 editorCreated 事件
+        // 比如创建Main.java后，再打开Test.java，会触发两次 editorCreated 事件
+        // 输出的是：编辑器创建，当前文件: C:/Users/何如麟/IdeaProjects/test/src/Main.java
+        //         编辑器创建，当前文件: C:/Users/何如麟/IdeaProjects/test/src/Main.java
+        // Main.java 输出了两次，这是因为 EditorFactoryListener 是全局的，不是针对某个文件的
+        // 但是 DocListener 是针对某个文件的，所以会有这个问题，要怎么解决呢？
     }
 
     public void editorRemoved(EditorFactoryEvent event) {
