@@ -18,7 +18,6 @@ public class DocVirtualListener implements VirtualFileListener {
     public void contentsChanged(@NotNull VirtualFileEvent event) {// 内容改变
         System.out.println("内容改变");
         printFileInfo(event);
-        System.out.println(event.getNewModificationStamp());
 
     }
 
