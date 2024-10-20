@@ -21,6 +21,20 @@ public class RollbackManager {
         this.versionManager = versionManager;
     }
 
+    public void rollbackToLatest(String filePath) {
+        VersionRecord latestVersion = versionManager.getLatestVersion(filePath);
+        if (latestVersion != null) {
+            try {
+                // 将最新版本的完整内容写入当前文件
+                Files.write(Paths.get(filePath), latestVersion.getLines(), StandardCharsets.UTF_8);
+                System.out.println("已成功回滚到最新版本: " + filePath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
     // 回滚到最新版本
     public void rollbackToLatest(Project project, String filePath) {
         VersionRecord latestVersion = versionManager.getLatestVersion(filePath);

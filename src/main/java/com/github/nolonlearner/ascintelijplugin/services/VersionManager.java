@@ -45,23 +45,15 @@ public class VersionManager {
     }
 
     // 保存当前版本
-    public void saveVersion(String filePath, List<Change> changes) {
+    public void saveVersion(String filePath, List<Change> changes, List<String> currentLines) {
         String versionId = generateVersionId();  // 生成唯一的版本 ID
         String timestamp = getCurrentTimestamp();  // 获取当前时间戳
-
-        // 读取当前文件的所有行
-        List<String> currentLines = new ArrayList<>();
-        try {
-            currentLines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         // 创建新的版本记录，包含变更和当前文件内容
         VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes, currentLines);
         addVersion(filePath, newVersion);  // 将新版本记录添加到历史记录中
 
-        // 写入版本文件
+        // 写入版本文件，避免覆盖原文件
         String versionFilePath = filePath + ".v" + versionId;
         try {
             Files.write(Paths.get(versionFilePath), currentLines, StandardCharsets.UTF_8);
@@ -71,6 +63,7 @@ public class VersionManager {
             e.printStackTrace();
         }
     }
+
 
 
 }

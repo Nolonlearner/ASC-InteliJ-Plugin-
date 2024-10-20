@@ -1,4 +1,5 @@
 package com.github.nolonlearner.ascintelijplugin.services;
+import java.util.ArrayList;
 import java.util.List;
 
 public class VersionRecord {
@@ -29,5 +30,22 @@ public class VersionRecord {
     public List<String> getLines() {
         return lines;  // 返回当前版本的文件内容
     }
+
+    public List<String> getChangesAsLines() {
+        List<String> modifiedLines = new ArrayList<>();
+        for (Change change : changes) {
+            switch (change.getChangeType()) {
+                case "ADD":
+                case "MODIFY":
+                    modifiedLines.add(change.getContent());  // 将添加或修改的行加入
+                    break;
+                case "DELETE":
+                    // 对于删除类型，可根据需要决定是否做进一步处理
+                    break;
+            }
+        }
+        return modifiedLines;
+    }
+
 }
 

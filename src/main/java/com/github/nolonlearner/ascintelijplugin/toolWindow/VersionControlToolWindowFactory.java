@@ -17,7 +17,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -89,11 +92,48 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
-    // 新增方法：对比当前文件内容与上一个版本内容
+
+    private void saveCurrentVersion(Project project) {
+        VirtualFile currentFile = getCurrentFile(project);
+
+        if (currentFile != null) {
+            String filePath = currentFile.getPath();
+
+            // 获取当前文件的所有行，作为当前版本的内容
+            List<String> currentLines = new ArrayList<>();
+            try {
+                currentLines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // 获取最新的版本记录和它的完整内容
+            VersionRecord latestVersion = versionManager.getLatestVersion(filePath);
+            List<String> previousLines = new ArrayList<>();
+            if (latestVersion != null) {
+                previousLines = latestVersion.getLines();  // 获取上一版本的完整内容
+            }
+
+            // 比较当前内容和上一版本内容，生成变更记录
+            List<Change> changes = getChangesBetweenVersions(previousLines, currentLines);
+
+            // 如果有变更，则保存新的版本
+           // if (!changes.isEmpty()) {
+                versionManager.saveVersion(filePath, changes, currentLines);  // 保存变更记录和完整内容
+                JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
+           /*
+           } else {
+                JOptionPane.showMessageDialog(null, "无任何变更，不保存版本。", "保存提示", JOptionPane.INFORMATION_MESSAGE);
+           }
+          */
+        } else {
+            JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // 对比两个版本的内容，生成变更记录
     private List<Change> getChangesBetweenVersions(List<String> previousLines, List<String> currentLines) {
         List<Change> changes = new ArrayList<>();
-
-        // 对比两个版本的内容（简单逐行对比示例，可以根据需要优化算法）
         int previousSize = previousLines.size();
         int currentSize = currentLines.size();
         int maxSize = Math.max(previousSize, currentSize);
@@ -107,9 +147,9 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                     changes.add(new Change("MODIFY", currentLine));  // 如果行内容不同，标记为修改
                 }
             } else if (i >= previousSize) {
-                changes.add(new Change("ADD", currentLines.get(i)));  // 如果是新增加的行，标记为添加
+                changes.add(new Change("ADD", currentLines.get(i)));  // 新增的行
             } else {
-                changes.add(new Change("DELETE", previousLines.get(i)));  // 如果是多余的行，标记为删除
+                changes.add(new Change("DELETE", previousLines.get(i)));  // 删除的行
             }
         }
 
@@ -117,40 +157,20 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     }
 
 
-    private void saveCurrentVersion(Project project) {
-        VirtualFile currentFile = getCurrentFile(project);
-
-        if (currentFile != null) {
-            String filePath = currentFile.getPath();
-            // 获取当前文件的所有行，作为当前版本的内容
-            List<String> currentLines = new ArrayList<>();
-            try {
-                currentLines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                e.printStackTrace();
+    // 生成文件内容的哈希值
+    private String generateFileHash(List<String> lines) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            for (String line : lines) {
+                digest.update(line.getBytes(StandardCharsets.UTF_8));
             }
-
-            // 获取上一个版本的内容
-            VersionRecord previousVersion = versionManager.getLatestVersion(filePath);
-            List<String> previousLines = new ArrayList<>();
-            if (previousVersion != null) {
-                previousLines = previousVersion.getLines();  // 假设 VersionRecord 保存了行内容
-            }
-
-            // 比较当前版本与上一个版本，生成变更记录
-            List<Change> changes = getChangesBetweenVersions(previousLines, currentLines);
-
-            // 如果有变更，则保存新的版本
-            if (!changes.isEmpty()) {
-                versionManager.saveVersion(filePath, changes);
-                JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(null, "无任何变更，不保存版本。", "保存提示", JOptionPane.INFORMATION_MESSAGE);
-            }
-        } else {
-            JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
+            byte[] hash = digest.digest();
+            return Base64.getEncoder().encodeToString(hash);  // 将哈希值编码为字符串
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("哈希算法不存在", e);
         }
     }
+
 
 
 
