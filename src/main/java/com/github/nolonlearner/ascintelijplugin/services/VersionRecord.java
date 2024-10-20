@@ -7,12 +7,18 @@ public class VersionRecord {
     private final String timestamp;
     private final List<Change> changes;
     private final List<String> lines;  // 保存当前版本的文件内容
+    private final boolean isFullContent;  // 是否保存了完整文件内容
 
-    public VersionRecord(String versionId, String timestamp, List<Change> changes, List<String> lines) {
+    public VersionRecord(String versionId, String timestamp, List<Change> changes, List<String> lines, boolean isFullContent) {
         this.versionId = versionId;
         this.timestamp = timestamp;
         this.changes = changes;
         this.lines = lines;
+        this.isFullContent = isFullContent;
+    }
+
+    public boolean isFullContent() {
+        return isFullContent;
     }
 
     public String getVersionId() {
@@ -46,6 +52,5 @@ public class VersionRecord {
         }
         return modifiedLines;
     }
-
 }
 

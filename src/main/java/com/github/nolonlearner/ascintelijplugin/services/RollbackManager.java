@@ -35,6 +35,57 @@ public class RollbackManager {
     }
 
 
+    public void rollbackToVersion(Project project, String filePath, String targetVersionId) {
+        LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
+        VersionRecord targetVersion = null;
+        VersionRecord lastFullContentVersion = null;
+
+        // 找到目标版本及最近的完整版本
+        for (VersionRecord version : versions) {
+            if (version.getVersionId().equals(targetVersionId)) {
+                targetVersion = version;
+            }
+            if (version.isFullContent()) {
+                lastFullContentVersion = version;  // 更新最近的完整版本
+            }
+            if (targetVersion != null && lastFullContentVersion != null) {
+                break;  // 找到目标版本和最近完整版本，停止循环
+            }
+        }
+
+        if (targetVersion != null && lastFullContentVersion != null) {
+            // 从最近的完整版本开始应用变更
+            int startIndex = versions.indexOf(lastFullContentVersion);
+            int targetIndex = versions.indexOf(targetVersion);
+
+            for (int i = startIndex + 1; i <= targetIndex; i++) {
+                VersionRecord currentVersion = versions.get(i);
+                applyChangesToFile(filePath, currentVersion.getChanges());
+            }
+
+            // 将目标版本的完整内容写入当前文件
+            writeFileContent(filePath, targetVersion.getLines());
+        }
+    }
+
+    // 应用变更到文件
+    private void applyChangesToFile(String filePath, List<Change> changes) {
+        // 根据变更记录更新文件内容
+        // 这里实现应用变更的逻辑
+    }
+
+    // 将指定内容写入文件
+    private void writeFileContent(String filePath, List<String> lines) {
+        try {
+            Files.write(Paths.get(filePath), lines, StandardCharsets.UTF_8);
+            System.out.println("已回滚到版本: " + filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
     // 回滚到最新版本
     public void rollbackToLatest(Project project, String filePath) {
         VersionRecord latestVersion = versionManager.getLatestVersion(filePath);

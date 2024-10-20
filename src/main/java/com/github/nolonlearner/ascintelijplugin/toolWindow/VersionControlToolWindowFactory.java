@@ -45,14 +45,82 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         JButton rollbackButton = new JButton("回滚到最新版本");
         rollbackButton.addActionListener(e -> rollbackToLatestVersion(project));
 
+        JButton rollbackToSpecificButton = new JButton("回滚到特定版本");
+        rollbackToSpecificButton.addActionListener(e -> rollbackToSpecificVersion(project));
+
         JButton saveVersionButton = new JButton("保存当前版本");
         saveVersionButton.addActionListener(e -> saveCurrentVersion(project));
 
+        panel.add(rollbackToSpecificButton);
         panel.add(showHistoryButton);
         panel.add(rollbackButton);
         panel.add(saveVersionButton);
 
         toolWindow.getContentManager().addContent(ContentFactory.getInstance().createContent(panel, "", false));
+    }
+
+    private void rollbackToSpecificVersion(Project project) {
+        VirtualFile currentFile = getCurrentFile(project);
+
+        if (currentFile != null) {
+            String filePath = currentFile.getPath();
+            LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
+
+            // 输入框让用户输入版本ID
+            String versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
+
+            for (VersionRecord version : versions) {
+                if (version.getVersionId().equals(versionId)) {
+                    // 找到目标版本，开始回滚
+                    VersionRecord previousVersion = findNearestFullContentVersion(versions, version);
+                    if (previousVersion != null) {
+                        applyChangesToFile(project, filePath, previousVersion, version);
+                        JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(null, "未找到完整内容版本，无法回滚。", "错误", JOptionPane.ERROR_MESSAGE);
+                    }
+                    return;
+                }
+            }
+            JOptionPane.showMessageDialog(null, "未找到版本 ID: " + versionId, "错误", JOptionPane.ERROR_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private VersionRecord findNearestFullContentVersion(LinkedList<VersionRecord> versions, VersionRecord targetVersion) {
+        // 从目标版本开始向前查找最近的完整内容版本
+        for (int i = versions.indexOf(targetVersion) - 1; i >= 0; i--) {
+            if (versions.get(i).isFullContent()) {
+                return versions.get(i);
+            }
+        }
+        return null;  // 如果未找到
+    }
+
+    private void applyChangesToFile(Project project, String filePath, VersionRecord fromVersion, VersionRecord toVersion) {
+        // 按照变更记录逐个版本推进
+        List<Change> changes = new ArrayList<>();
+        LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
+        int startIndex = versions.indexOf(fromVersion);
+        int endIndex = versions.indexOf(toVersion);
+
+        for (int i = startIndex + 1; i <= endIndex; i++) {
+            changes.addAll(versions.get(i).getChanges());
+        }
+
+        // 将最终的文件内容写入当前文件
+        try {
+            List<String> currentLines = fromVersion.getLines(); // 先获取完整内容
+            for (Change change : changes) {
+                // 根据变更记录更新 currentLines
+                // TODO: 实现具体的变更逻辑
+            }
+            Files.write(Paths.get(filePath), currentLines, StandardCharsets.UTF_8);
+            System.out.println("文件已成功回滚到版本 ID: " + toVersion.getVersionId());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void showVersionHistory(Project project) {
