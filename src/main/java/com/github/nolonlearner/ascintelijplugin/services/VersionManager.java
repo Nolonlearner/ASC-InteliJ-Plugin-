@@ -1,10 +1,17 @@
 package com.github.nolonlearner.ascintelijplugin.services;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ArrayList; // 导入 ArrayList 类
+
 
 public class VersionManager {
-    private HashMap<String, LinkedList<VersionRecord>> fileVersionHistory;
+    private final HashMap<String, LinkedList<VersionRecord>> fileVersionHistory;
 
     public VersionManager() {
         fileVersionHistory = new HashMap<>();
@@ -39,9 +46,31 @@ public class VersionManager {
 
     // 保存当前版本
     public void saveVersion(String filePath, List<Change> changes) {
-        String versionId = generateVersionId(); // 生成版本 ID
-        String timestamp = getCurrentTimestamp(); // 获取时间戳
-        VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes);
-        addVersion(filePath, newVersion); // 保存新版本到历史中
+        String versionId = generateVersionId();  // 生成唯一的版本 ID
+        String timestamp = getCurrentTimestamp();  // 获取当前时间戳
+
+        // 读取当前文件的所有行
+        List<String> currentLines = new ArrayList<>();
+        try {
+            currentLines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 创建新的版本记录，包含变更和当前文件内容
+        VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes, currentLines);
+        addVersion(filePath, newVersion);  // 将新版本记录添加到历史记录中
+
+        // 写入版本文件
+        String versionFilePath = filePath + ".v" + versionId;
+        try {
+            Files.write(Paths.get(versionFilePath), currentLines, StandardCharsets.UTF_8);
+            System.out.println("版本已保存: " + versionFilePath);
+        } catch (IOException e) {
+            System.err.println("保存版本失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
+
+
 }

@@ -11,25 +11,22 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.vfs.VirtualFile;
 
 import javax.swing.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
-    private final VersionManager versionManager; // 版本管理模块实例
-    private final RollbackManager rollbackManager; // 回滚管理模块实例
+    private final VersionManager versionManager;
+    private final RollbackManager rollbackManager;
 
     public VersionControlToolWindowFactory() {
-        // 初始化版本管理和回滚管理
         versionManager = new VersionManager();
         rollbackManager = new RollbackManager(versionManager);
     }
@@ -59,7 +56,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         VirtualFile currentFile = getCurrentFile(project);
 
         if (currentFile != null) {
-            String filePath = currentFile.getPath(); // 获取当前文件的路径
+            String filePath = currentFile.getPath();
             LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
             StringBuilder history = new StringBuilder();
 
@@ -79,51 +76,89 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         VirtualFile currentFile = getCurrentFile(project);
 
         if (currentFile != null) {
-            String filePath = currentFile.getPath(); // 获取当前文件的路径
-            rollbackManager.rollbackToLatest(project, filePath); // 传递 project 参数
+            String filePath = currentFile.getPath();
+            rollbackManager.rollbackToLatest(project, filePath);
+            // 可以在这里添加日志以确认回滚成功
+            VersionRecord latestVersion = versionManager.getLatestVersion(filePath);
+            if (latestVersion != null) {
+                System.out.println("已回滚到版本 ID: " + latestVersion.getVersionId());
+            }
             JOptionPane.showMessageDialog(null, "已回滚到最新版本", "回滚成功", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
 
+    // 新增方法：对比当前文件内容与上一个版本内容
+    private List<Change> getChangesBetweenVersions(List<String> previousLines, List<String> currentLines) {
+        List<Change> changes = new ArrayList<>();
+
+        // 对比两个版本的内容（简单逐行对比示例，可以根据需要优化算法）
+        int previousSize = previousLines.size();
+        int currentSize = currentLines.size();
+        int maxSize = Math.max(previousSize, currentSize);
+
+        for (int i = 0; i < maxSize; i++) {
+            if (i < previousSize && i < currentSize) {
+                String previousLine = previousLines.get(i);
+                String currentLine = currentLines.get(i);
+
+                if (!previousLine.equals(currentLine)) {
+                    changes.add(new Change("MODIFY", currentLine));  // 如果行内容不同，标记为修改
+                }
+            } else if (i >= previousSize) {
+                changes.add(new Change("ADD", currentLines.get(i)));  // 如果是新增加的行，标记为添加
+            } else {
+                changes.add(new Change("DELETE", previousLines.get(i)));  // 如果是多余的行，标记为删除
+            }
+        }
+
+        return changes;
+    }
+
+
     private void saveCurrentVersion(Project project) {
         VirtualFile currentFile = getCurrentFile(project);
 
         if (currentFile != null) {
-            String filePath = currentFile.getPath(); // 获取当前文件的路径
-            List<Change> changes = getChangesFromCurrentFile(filePath); // 需要实现此方法
-            versionManager.saveVersion(filePath, changes);
-            JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
+            String filePath = currentFile.getPath();
+            // 获取当前文件的所有行，作为当前版本的内容
+            List<String> currentLines = new ArrayList<>();
+            try {
+                currentLines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // 获取上一个版本的内容
+            VersionRecord previousVersion = versionManager.getLatestVersion(filePath);
+            List<String> previousLines = new ArrayList<>();
+            if (previousVersion != null) {
+                previousLines = previousVersion.getLines();  // 假设 VersionRecord 保存了行内容
+            }
+
+            // 比较当前版本与上一个版本，生成变更记录
+            List<Change> changes = getChangesBetweenVersions(previousLines, currentLines);
+
+            // 如果有变更，则保存新的版本
+            if (!changes.isEmpty()) {
+                versionManager.saveVersion(filePath, changes);
+                JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "无任何变更，不保存版本。", "保存提示", JOptionPane.INFORMATION_MESSAGE);
+            }
         } else {
             JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // 辅助方法，用于获取当前编辑的文件
+
+
+
     private VirtualFile getCurrentFile(Project project) {
         return FileEditorManager.getInstance(project).getSelectedEditors().length > 0
                 ? FileEditorManager.getInstance(project).getSelectedEditors()[0].getFile()
                 : null;
     }
 
-
-    private List<Change> getChangesFromCurrentFile(String filePath) {
-        List<Change> changes = new ArrayList<>();
-        try {
-            List<String> currentLines = Files.readAllLines(Paths.get(filePath));
-            // 在这里可以添加逻辑来比较 currentLines 与上一个版本的内容
-            // 假设你已经有上一个版本的内容，这里简化处理
-            List<String> previousLines = versionManager.getLatestVersion(filePath).getChanges()
-                    .stream().map(Change::getContent).toList();
-            for (String line : currentLines) {
-                if (!previousLines.contains(line)) {
-                    changes.add(new Change("ADD", line)); // 假设新增行
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return changes;
-    }
 }
