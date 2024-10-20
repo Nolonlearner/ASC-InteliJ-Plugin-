@@ -6,16 +6,11 @@
 
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="VersionControlToolWindow"
                     factoryClass="com.github.nolonlearner.ascintelijplugin.toolWindow.VersionControlToolWindowFactory" />
+        <postStartupActivity implementation="com.github.nolonlearner.ascintelijplugin.MyStartupActivity"/>
     </extensions>
 
 
-    <applicationListeners>
-        <listener class="com.github.nolonlearner.ascintelijplugin.listeners.MyApplicationActivationListener"
-                  topic="com.intellij.openapi.application.ApplicationActivationListener"/>
-    </applicationListeners>
 </idea-plugin>
