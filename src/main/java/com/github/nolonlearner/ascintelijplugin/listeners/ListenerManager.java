@@ -20,28 +20,32 @@ import java.util.Map;
     * 这个类在 EditorFactoryListener 接口的实现中使用，用于处理编辑器的生命周期事件。
  */
 public class ListenerManager implements EditorFactoryListener {
-    private final Project project;
-    private final Map<VirtualFile, DocumentListener> documentListenerMap;
-    private final DocVirtualListener fileListenerManager;
+    private final Project project;// 项目实例
+    private final Map<VirtualFile, DocumentListener> documentListenerMap;// 文档监听器映射
+    private final DocVirtualListener docVirtualListener;// 文档虚拟监听器
 
     public ListenerManager(Project project) {
-        System.out.println("ListenerManager 构造函数");
+        System.out.println("进入 ListenerManager 构造函数");
         this.project = project;
         documentListenerMap = new HashMap<>();
-        fileListenerManager = new DocVirtualListener();
+        docVirtualListener = new DocVirtualListener();
 
         // 注册 DocVirtualListener
-        VirtualFileManager.getInstance().addVirtualFileListener(fileListenerManager);
+        VirtualFileManager.getInstance().addVirtualFileListener(docVirtualListener);
 
         // 注册 EditorFactoryListener
         EditorFactory.getInstance().addEditorFactoryListener(this, project);
+
+        // 因为打开IDEA的时候会有默认的editor，但并没有绑定监听器，所以需要手动检查已经打开的编辑器，并为其绑定 DocumentListener
+        bindToAlreadyOpenedEditors();
     }
 
     @Override
     public void editorCreated(EditorFactoryEvent event) {
+        System.out.println("尝试创建编辑器");
         // 获取当前编辑器的文档
-        Document document = event.getEditor().getDocument();
-        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(document);
+        Document document = event.getEditor().getDocument();// 获取编辑器的文档
+        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(document);// 获取文档对应的文件
 
         System.out.println("editorCreated document: " + document);
         System.out.println("editorCreated currentFile: " +currentFile);
@@ -55,18 +59,16 @@ public class ListenerManager implements EditorFactoryListener {
         }
 
         System.out.println("编辑器创建，当前文件: " + currentFile.getPath());
-        // 此处有bug，创建一个编辑器后，再打开别的编辑器，会两次触发相同的 editorCreated 事件
-        // 比如创建Main.java后，再打开Test.java，会触发两次 editorCreated 事件
-        // 输出的是：编辑器创建，当前文件: C:/Users/何如麟/IdeaProjects/test/src/Main.java
-        //         编辑器创建，当前文件: C:/Users/何如麟/IdeaProjects/test/src/Main.java
-        // Main.java 输出了两次，这是因为 EditorFactoryListener 是全局的，不是针对某个文件的
-        // 但是 DocListener 是针对某个文件的，所以会有这个问题，要怎么解决呢？
     }
 
-    public void editorRemoved(EditorFactoryEvent event) {
+    @Override
+    public void editorReleased(EditorFactoryEvent event) {
         // 获取当前编辑器的文档
+        System.out.println("触发编辑器移除");
         Document document = event.getEditor().getDocument();
-        VirtualFile currentFile = getCurrentOpenFile();
+        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(document);
+        System.out.println("editorRemoved document: " + document);
+        System.out.println("editorRemoved currentFile: " +currentFile);
 
         if (currentFile != null) {
             // 移除 DocumentListener
@@ -81,5 +83,21 @@ public class ListenerManager implements EditorFactoryListener {
     private VirtualFile getCurrentOpenFile() {
         VirtualFile[] files = FileEditorManager.getInstance(project).getOpenFiles();
         return files.length > 0 ? files[0] : null; // 返回第一个打开的文件
+    }
+
+    // 绑定已经打开的编辑器
+    private void bindToAlreadyOpenedEditors(){
+        System.out.println("尝试绑定已经打开的编辑器");
+        VirtualFile[] openFiles = FileEditorManager.getInstance(project).getOpenFiles();
+        for (VirtualFile file : openFiles) {
+            System.out.println("已打开的文件: " + file.getPath());
+            Document document = FileDocumentManager.getInstance().getDocument(file);
+            if (document != null && !documentListenerMap.containsKey(file)) {
+                DocListener docListener = new DocListener(document);
+                document.addDocumentListener(docListener);
+                documentListenerMap.put(file, docListener);
+                System.out.println("已恢复编辑器绑定，文件: " + file.getPath());
+            }
+        }
     }
 }

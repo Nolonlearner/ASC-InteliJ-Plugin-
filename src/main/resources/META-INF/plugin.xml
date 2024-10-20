@@ -9,7 +9,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="VersionControlToolWindow"
                     factoryClass="com.github.nolonlearner.ascintelijplugin.toolWindow.VersionControlToolWindowFactory" />
-        <postStartupActivity implementation="com.github.nolonlearner.ascintelijplugin.MyStartupActivity"/>
+        <postStartupActivity implementation="com.github.nolonlearner.ascintelijplugin.startup.MyStartupActivity"/>
     </extensions>
 
 

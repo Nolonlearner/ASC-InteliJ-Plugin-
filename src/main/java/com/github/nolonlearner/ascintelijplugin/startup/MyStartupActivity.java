@@ -1,4 +1,4 @@
-package com.github.nolonlearner.ascintelijplugin;
+package com.github.nolonlearner.ascintelijplugin.startup;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;

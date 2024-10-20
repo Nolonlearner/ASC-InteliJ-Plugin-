@@ -30,6 +30,7 @@ public class DocListener implements DocumentListener {
      */
     @Override
     public void beforeDocumentChange(@NotNull DocumentEvent event) {
+        System.out.println("获取文档"+ document +"的旧文本内容");
         oldText = document.getText();// 获取文档的旧文本内容
     }
 
@@ -38,6 +39,7 @@ public class DocListener implements DocumentListener {
      */
     @Override
     public void documentChanged(@NotNull DocumentEvent event) {
+        System.out.println("获取文档"+ document +"的新文本内容");
         newText = document.getText();// 获取文档的新文本内容
         System.out.println("Document changed from: " + oldText + " to: " + newText);
         // 这里可以调用其他处理方法，例如保存local history
