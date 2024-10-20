@@ -1,19 +1,22 @@
 package com.github.nolonlearner.ascintelijplugin.services;
-// src/main/java/com/github/nolonlearner/ascintelijplugin/services/VersionRecord.java
+
+import java.util.ArrayList;
+
 import java.util.List;
 
 public class VersionRecord {
-    private String versionId;  // 版本 ID
-    private String timestamp;  // 时间戳
-    private List<Change> changes;  // 变更内容列表
+    private final String versionId;
+    private final String timestamp;
+    private final List<Change> changes;
+    private final List<String> lines;  // 保存当前版本的文件内容
 
-    public VersionRecord(String versionId, String timestamp, List<Change> changes) {
+    public VersionRecord(String versionId, String timestamp, List<Change> changes, List<String> lines) {
         this.versionId = versionId;
         this.timestamp = timestamp;
         this.changes = changes;
+        this.lines = lines;
     }
 
-    // Getter 方法
     public String getVersionId() {
         return versionId;
     }
@@ -25,4 +28,26 @@ public class VersionRecord {
     public List<Change> getChanges() {
         return changes;
     }
+
+    public List<String> getLines() {
+        return lines;  // 返回当前版本的文件内容
+    }
+
+    public List<String> getChangesAsLines() {
+        List<String> modifiedLines = new ArrayList<>();
+        for (Change change : changes) {
+            switch (change.getChangeType()) {
+                case "ADD":
+                case "MODIFY":
+                    modifiedLines.add(change.getContent());  // 将添加或修改的行加入
+                    break;
+                case "DELETE":
+                    // 对于删除类型，可根据需要决定是否做进一步处理
+                    break;
+            }
+        }
+        return modifiedLines;
+    }
+
 }
+
