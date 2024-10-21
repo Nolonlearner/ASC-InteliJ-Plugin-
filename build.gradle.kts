@@ -32,12 +32,8 @@ repositories {
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
-
-
     // 添加 java-diff-utils 依赖
     implementation("io.github.java-diff-utils:java-diff-utils:4.12")
-
-
 
     testImplementation(libs.junit)
 
@@ -55,6 +51,8 @@ dependencies {
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
+
+
     }
 }
 
