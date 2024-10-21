@@ -39,7 +39,7 @@ public class ActionListener extends DocListener {
 
         // 创建上下文并评估条件
         AutoSaveContext context = new AutoSaveContext(document, psiElement);
-        System.out.println("context in ActionListener:"+ context.getDocument().getText());
+        //System.out.println("context in ActionListener:"+ context.getDocument().getText());
         autoSaveManager.evaluateConditions(context);
     }
 
