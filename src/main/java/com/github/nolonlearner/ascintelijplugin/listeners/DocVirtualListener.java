@@ -9,30 +9,28 @@ public class DocVirtualListener implements VirtualFileListener {
     @Override
     public void propertyChanged(@NotNull VirtualFilePropertyEvent event) {// 属性改变
         System.out.println("属性改变");
+        printFileInfo(event);
+        // 输出改变的属性
+        System.out.println(event.getPropertyName());
     }
 
     @Override
     public void contentsChanged(@NotNull VirtualFileEvent event) {// 内容改变
         System.out.println("内容改变");
-        System.out.println(event.getFile().getPath());
-        System.out.println(event.getFile().getName());
-        System.out.println(event.getFile().getFileType());
+        printFileInfo(event);
+
     }
 
     @Override
     public void fileCreated(@NotNull VirtualFileEvent event) {// 文件创建
         System.out.println("文件创建");
-        System.out.println(event.getFile().getPath());
-        System.out.println(event.getFile().getName());
-        System.out.println(event.getFile().getFileType());
+
     }
 
     @Override
     public void fileDeleted(@NotNull VirtualFileEvent event) {// 文件删除
         System.out.println("文件删除");
-        System.out.println(event.getFile().getPath());
-        System.out.println(event.getFile().getName());
-        System.out.println(event.getFile().getFileType());
+        printFileInfo(event);
     }
 
     @Override
@@ -63,5 +61,11 @@ public class DocVirtualListener implements VirtualFileListener {
     @Override
     public void beforeFileMovement(@NotNull VirtualFileMoveEvent event) {// 文件移动之前
         System.out.println("文件移动之前");
+    }
+
+    private void printFileInfo( VirtualFileEvent event){
+        System.out.println(event.getFile().getPath());
+        System.out.println(event.getFile().getName());
+        System.out.println(event.getFile().getFileType());
     }
 }
