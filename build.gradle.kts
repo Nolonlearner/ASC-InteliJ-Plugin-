@@ -23,7 +23,7 @@ version = providers.gradleProperty("pluginVersion").get()
 // Configure project's dependencies
 repositories {
     mavenCentral()
-
+    maven { url= uri( "https://jitpack.io") }
     // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
     intellijPlatform {
         defaultRepositories()
@@ -35,10 +35,10 @@ dependencies {
 
 
     // 添加 java-diff-utils 依赖
-    implementation("io.github.java-diff-utils:java-diff-utils:4.12")
+    //implementation("io.github.java-diff-utils:java-diff-utils:4.12")
 
     // 添加 diff-match-patch 依赖
-    implementation("com.googlecode.java-diff-utils:diff-match-patch:21.0");
+    implementation("com.github.java-diff-utils:java-diff-utils:master-SNAPSHOT");
 
     implementation ("javax.annotation:javax.annotation-api:1.3.2")
 

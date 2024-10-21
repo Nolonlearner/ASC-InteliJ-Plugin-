@@ -8,8 +8,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import com.github.difflib.patch.Patch;
 
-import name.fraser.neil.plaintext.diff_match_patch;
 
 public class DocListener implements DocumentListener {
 
@@ -18,12 +18,14 @@ public class DocListener implements DocumentListener {
     private String newText; // 新文本
     private ScheduledExecutorService executorService; // 定时任务执行器
     private final long DELAY = 300; // 300 毫秒的延迟
+    private Patch<String> patch;// 保存文本差异的 Patch 对象
 
     public DocListener() {
         this.document = null;
         this.oldText = "";
         this.newText = "";
         this.executorService = Executors.newSingleThreadScheduledExecutor();
+        patch = new Patch<>();
     }
 
     public DocListener(Document document) {
@@ -61,5 +63,9 @@ public class DocListener implements DocumentListener {
         if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdown();
         }
+    }
+
+    public Patch getPatch() {
+        return patch;
     }
 }
