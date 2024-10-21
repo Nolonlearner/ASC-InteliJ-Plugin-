@@ -58,9 +58,33 @@ public class RollbackManager {
 
     // 应用变更到文件
     private void applyChangesToFile(String filePath, List<Change> changes) {
-        // 根据变更记录更新文件内容
-        // 这里实现应用变更的逻辑
+        try {
+            List<String> currentLines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
+            for (Change change : changes) {
+                switch (change.getChangeType()) {
+                    case "ADD":
+                        currentLines.add(change.getContent());
+                        break;
+                    case "MODIFY":
+                        int lineIndex = change.getLineNumber();
+                        if (lineIndex >= 0 && lineIndex < currentLines.size()) {
+                            currentLines.set(lineIndex, change.getContent());
+                        }
+                        break;
+                    case "DELETE":
+                        lineIndex = change.getLineNumber();
+                        if (lineIndex >= 0 && lineIndex < currentLines.size()) {
+                            currentLines.remove(lineIndex);
+                        }
+                        break;
+                }
+            }
+            Files.write(Paths.get(filePath), currentLines, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
+
 
     // 将指定内容写入文件
     private void writeFileContent(String filePath, List<String> lines) {
