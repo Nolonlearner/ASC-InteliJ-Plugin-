@@ -111,10 +111,25 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
         // 将最终的文件内容写入当前文件
         try {
-            List<String> currentLines = fromVersion.getLines(); // 先获取完整内容
+            List<String> currentLines = new ArrayList<>(fromVersion.getLines()); // 初始化当前内容
             for (Change change : changes) {
-                // 根据变更记录更新 currentLines
-                // TODO: 实现具体的变更逻辑
+                switch (change.getChangeType()) {
+                    case "ADD":
+                        currentLines.add(change.getContent());
+                        break;
+                    case "MODIFY":
+                        int lineIndex = change.getLineNumber();
+                        if (lineIndex >= 0 && lineIndex < currentLines.size()) {
+                            currentLines.set(lineIndex, change.getContent());
+                        }
+                        break;
+                    case "DELETE":
+                        lineIndex = change.getLineNumber();
+                        if (lineIndex >= 0 && lineIndex < currentLines.size()) {
+                            currentLines.remove(lineIndex);
+                        }
+                        break;
+                }
             }
             Files.write(Paths.get(filePath), currentLines, StandardCharsets.UTF_8);
             System.out.println("文件已成功回滚到版本 ID: " + toVersion.getVersionId());
@@ -122,6 +137,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             e.printStackTrace();
         }
     }
+
 
     private void showVersionHistory(Project project) {
         VirtualFile currentFile = getCurrentFile(project);
@@ -167,62 +183,24 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         if (currentFile != null) {
             String filePath = currentFile.getPath();
 
-            // 获取当前文件的所有行，作为当前版本的内容
-            List<String> currentLines = new ArrayList<>();
+            // 读取当前文件的所有行
+            List<String> currentLines;
             try {
                 currentLines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
             } catch (IOException e) {
-                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "无法读取当前文件内容。", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
             }
 
-            // 获取最新的版本记录和它的完整内容
-            VersionRecord latestVersion = versionManager.getLatestVersion(filePath);
-            List<String> previousLines = new ArrayList<>();
-            if (latestVersion != null) {
-                previousLines = latestVersion.getLines();  // 获取上一版本的完整内容
-            }
+            // 调用 VersionManager 的 saveVersion 方法
+            versionManager.saveVersion(filePath, currentLines);
 
-            // 比较当前内容和上一版本内容，生成变更记录
-            List<Change> changes = getChangesBetweenVersions(previousLines, currentLines);
-
-            // 如果有变更，则保存新的版本
-           // if (!changes.isEmpty()) {
-                versionManager.saveVersion(filePath, changes, currentLines);  // 保存变更记录和完整内容
-                JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
-           /*
-           } else {
-                JOptionPane.showMessageDialog(null, "无任何变更，不保存版本。", "保存提示", JOptionPane.INFORMATION_MESSAGE);
-           }
-          */
+            JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // 对比两个版本的内容，生成变更记录
-    private List<Change> getChangesBetweenVersions(List<String> previousLines, List<String> currentLines) {
-        List<Change> changes = new ArrayList<>();
-        int previousSize = previousLines.size();
-        int currentSize = currentLines.size();
-        int maxSize = Math.max(previousSize, currentSize);
-
-        for (int i = 0; i < maxSize; i++) {
-            if (i < previousSize && i < currentSize) {
-                String previousLine = previousLines.get(i);
-                String currentLine = currentLines.get(i);
-
-                if (!previousLine.equals(currentLine)) {
-                    changes.add(new Change("MODIFY", currentLine));  // 如果行内容不同，标记为修改
-                }
-            } else if (i >= previousSize) {
-                changes.add(new Change("ADD", currentLines.get(i)));  // 新增的行
-            } else {
-                changes.add(new Change("DELETE", previousLines.get(i)));  // 删除的行
-            }
-        }
-
-        return changes;
-    }
 
 
     // 生成文件内容的哈希值
