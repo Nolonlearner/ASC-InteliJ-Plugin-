@@ -1,6 +1,8 @@
 package com.github.nolonlearner.ascintelijplugin.listeners;
 // src/main/java/com/github/nolonlearner/ascintelijplugin/listeners/ListenerManager.java
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveManager;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.FileSave;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.SaveDocumentCommand;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.DocumentListener;
@@ -12,7 +14,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /*
@@ -23,6 +27,7 @@ import java.util.Map;
 public class ListenerManager implements EditorFactoryListener {
     private final Project project;// 项目实例
     private final Map<VirtualFile, DocumentListener> documentListenerMap;// 文档监听器映射
+    private final Map<VirtualFile, List<Object>> testlistenerMap;
     private final DocVirtualListener docVirtualListener;// 文档虚拟监听器
 
     public ListenerManager(Project project) {
@@ -30,6 +35,7 @@ public class ListenerManager implements EditorFactoryListener {
         this.project = project;
         documentListenerMap = new HashMap<>();
         docVirtualListener = new DocVirtualListener();
+        testlistenerMap = new HashMap<>();
 
         // 注册 DocVirtualListener
         VirtualFileManager.getInstance().addVirtualFileListener(docVirtualListener);
@@ -44,21 +50,24 @@ public class ListenerManager implements EditorFactoryListener {
     @Override
     public void editorCreated(EditorFactoryEvent event) {
         System.out.println("尝试创建编辑器");
-        // 获取当前编辑器的文档
-        Document document = event.getEditor().getDocument();// 获取编辑器的文档
-        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(document);// 获取文档对应的文件
+        Document document = event.getEditor().getDocument();
+        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(document);
 
-        System.out.println("editorCreated document: " + document);
-        System.out.println("editorCreated currentFile: " +currentFile);
+        if (currentFile != null) {
+            // 确保 testlistenerMap 中有一个列表
+            testlistenerMap.putIfAbsent(currentFile, new ArrayList<>());
+            List<Object> listeners = testlistenerMap.get(currentFile);
 
+            // 创建并注册 ActionListener
+            SaveDocumentCommand saveDocumentCommand = new SaveDocumentCommand(new FileSave(project, "this is a test path"));
+            AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand);
 
-        if (currentFile != null && !documentListenerMap.containsKey(currentFile)) {
-            // 创建并注册 DocumentListener
-            DocListener docListener = new DocListener(document);
-            document.addDocumentListener(docListener);
-            documentListenerMap.put(currentFile, docListener);
+            ActionListener actionListener = new ActionListener(document, autoSaveManager);
+            document.addDocumentListener(actionListener);
+            listeners.add(actionListener);
+
+            System.out.println("Registered listeners for file: " + currentFile.getPath());
         }
-
         System.out.println("编辑器创建，当前文件: " + currentFile.getPath());
     }
 
@@ -71,14 +80,31 @@ public class ListenerManager implements EditorFactoryListener {
         System.out.println("editorRemoved document: " + document);
         System.out.println("editorRemoved currentFile: " +currentFile);
 
-        if (currentFile != null) {
+        /*if (currentFile != null) {
             // 移除 DocumentListener
             DocumentListener listener = documentListenerMap.remove(currentFile);
+
             if (listener != null) {
                 document.removeDocumentListener(listener);
             }
             System.out.println("编辑器移除，当前文件: " + currentFile.getPath());
+        }*/
+
+        if (currentFile != null) {
+            // 移除监听器
+            List<Object> testlistener = testlistenerMap.remove(currentFile); // 移除监听器
+
+            if (testlistener != null) {
+                for (Object listener : testlistener) {
+                    if (listener instanceof DocumentListener) { // 确保是 DocumentListener
+                        document.removeDocumentListener((DocumentListener) listener); // 移除监听器
+                        System.out.println("Removed listener: " + listener.getClass());
+                    }
+                }
+            }
+            System.out.println("test编辑器移除，当前文件: " + currentFile.getPath());
         }
+
     }
 
     private VirtualFile getCurrentOpenFile() {
@@ -88,16 +114,26 @@ public class ListenerManager implements EditorFactoryListener {
 
     // 绑定已经打开的编辑器
     private void bindToAlreadyOpenedEditors(){
-        System.out.println("尝试绑定已经打开的编辑器");
+        System.out.println("test尝试绑定已经打开的编辑器");
         VirtualFile[] openFiles = FileEditorManager.getInstance(project).getOpenFiles();
         for (VirtualFile file : openFiles) {
             System.out.println("已打开的文件: " + file.getPath());
             Document document = FileDocumentManager.getInstance().getDocument(file);
-            if (document != null && !documentListenerMap.containsKey(file)) {
-                DocListener docListener = new DocListener(document);
-                document.addDocumentListener(docListener);
-                documentListenerMap.put(file, docListener);
-                System.out.println("已恢复编辑器绑定，文件: " + file.getPath());
+            if (document != null) {
+                // 确保 testlistenerMap 中有一个列表
+                testlistenerMap.putIfAbsent(file, new ArrayList<>());
+                List<Object> listeners = testlistenerMap.get(file);
+
+                // 创建并注册 ActionListener
+                SaveDocumentCommand saveDocumentCommand = new SaveDocumentCommand(new FileSave(project, "this is a test path"));
+                AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand);
+
+                ActionListener actionListener = new ActionListener(document, autoSaveManager);
+                document.addDocumentListener(actionListener);
+                listeners.add(actionListener);
+
+                // No need to put it back, as we already initialized it above
+                System.out.println("test已恢复编辑器绑定，文件: " + file.getPath());
             }
         }
     }

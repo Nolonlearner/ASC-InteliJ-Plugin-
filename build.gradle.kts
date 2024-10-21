@@ -37,6 +37,11 @@ dependencies {
     // 添加 java-diff-utils 依赖
     implementation("io.github.java-diff-utils:java-diff-utils:4.12")
 
+    // 添加 diff-match-patch 依赖
+    implementation("com.googlecode.java-diff-utils:diff-match-patch:21.0");
+
+    implementation ("javax.annotation:javax.annotation-api:1.3.2")
+
 
 
     testImplementation(libs.junit)

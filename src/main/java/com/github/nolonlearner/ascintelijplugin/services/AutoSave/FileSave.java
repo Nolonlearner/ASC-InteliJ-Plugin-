@@ -8,15 +8,20 @@ import com.intellij.openapi.project.Project;
     属性:
         Project project: 项目对象。
     构造函数:
-        ActionAutoSaveStrategy(Project project): 传入项目对象。
+        FileSave(Project project): 传入项目对象。
     方法:
         void save(Document document): 保存文档。
  */
-public class ActionAutoSaveStrategy {
+public class FileSave {
     private final Project project;
+    private String filePath = "src/main/resources/test/"; // 文件保存路径
 
-    public ActionAutoSaveStrategy(Project project) {
+    public FileSave(Project project) {
         this.project = project;
+    }
+    public FileSave(Project project, String filePath) {
+        this.project = project;
+        this.filePath = filePath;
     }
 
     public void save(Document document) {
@@ -27,5 +32,9 @@ public class ActionAutoSaveStrategy {
 
     public Project getProject() {
         return project;
+    }
+
+    public String getFilePath() {
+        return filePath;
     }
 }

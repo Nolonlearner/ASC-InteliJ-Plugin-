@@ -9,6 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import name.fraser.neil.plaintext.diff_match_patch;
+
 public class DocListener implements DocumentListener {
 
     private Document document; // 文档实例

@@ -23,14 +23,14 @@ public class ActionListener extends DocListener {
         super(document); // 调用父类构造函数
         this.autoSaveManager = autoSaveManager;
 
-        // 注册条件
-        autoSaveManager.addCondition(new LineCount(10));
-        autoSaveManager.addCondition(new PrintReturn());
-        autoSaveManager.addCondition(new SaveOnStructureChangeCondition());
+        // 注册关于用户动作的条件
+        autoSaveManager.addCondition(new LineCount(10));// 如果写代码超过十行
+        autoSaveManager.addCondition(new PrintReturn());// 如果打印了return;
     }
 
     @Override
     public void documentChanged(@NotNull DocumentEvent event) {
+        // 当检测到文档变化时
         super.documentChanged(event); // 调用父类的 documentChanged 方法
         System.out.println("ActionListener.documentChanged");// 输出信息
         // 获取当前文档和 PsiElement
@@ -39,6 +39,7 @@ public class ActionListener extends DocListener {
 
         // 创建上下文并评估条件
         AutoSaveContext context = new AutoSaveContext(document, psiElement);
+        System.out.println("context in ActionListener:"+ context.getDocument().getText());
         autoSaveManager.evaluateConditions(context);
     }
 
