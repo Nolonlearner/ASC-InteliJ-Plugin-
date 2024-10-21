@@ -1,6 +1,8 @@
 package com.github.nolonlearner.ascintelijplugin.listeners;
 
 import com.github.difflib.DiffUtils;
+import com.github.difflib.patch.AbstractDelta;
+import com.github.difflib.patch.DeltaType;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
@@ -12,9 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-
 import com.github.difflib.patch.Patch;
-
 
 public class DocListener implements DocumentListener {
 
@@ -22,77 +22,96 @@ public class DocListener implements DocumentListener {
     private String oldText; // 旧文本
     private String newText; // 新文本
     private ScheduledExecutorService executorService; // 定时任务执行器
-    private final long DELAY = 8000; // 8000 毫秒的延迟
-    private Patch<String> patch;// 保存文本差异的 Patch 对象
+    private final long DELAY = 10000; //  10000 毫秒
+    private Patch<String> patch; // 保存文本差异的 Patch 对象
     private boolean isProcessing; // 标志当前是否正在处理 diff
-    private final ReentrantLock lock; // 线程安全锁
+    private final ReentrantLock lock = new ReentrantLock(); // 线程安全锁
 
     public DocListener() {
         this.document = null;
         this.oldText = "";
         this.newText = "";
         this.executorService = Executors.newSingleThreadScheduledExecutor();
-        patch = new Patch<>();
-        isProcessing = false;
-        lock = new ReentrantLock();
+        this.patch = new Patch<>();
+        this.isProcessing = false;
     }
 
     public DocListener(Document document) {
+        this();
         System.out.println("DocListener 构造函数");
         System.out.println("document: " + document);
         this.document = document;
         this.oldText = document.getText(); // 初始化时获取文档的文本内容
         this.newText = document.getText(); // 新文本内容和旧文本内容相同
-        this.executorService = Executors.newSingleThreadScheduledExecutor();// 创建定时任务执行器
-        this.patch = new Patch<>(); // 初始化 Patch 对象
-        this.isProcessing = false; // 初始化为 false
-        this.lock = new ReentrantLock(); // 创建线程安全锁
     }
 
     @Override
     public void beforeDocumentChange(@NotNull DocumentEvent event) {
-        // 如果正在处理，不更新 oldText，避免 500ms 内频繁更新
-        if (isProcessing) {
-            // System.out.println("正在处理，不更新 oldText");
-            return;
+        lock.lock();// 加锁
+        try {//
+            if (isProcessing) {
+                return; // 如果正在处理，不更新 oldText
+            }
+            System.out.println("获取文档" + document + "的旧文本内容");
+            oldText = document.getText(); // 获取文档的旧文本内容
+        } finally {
+            lock.unlock();// 解锁
         }
-        System.out.println("获取文档" + document + "的旧文本内容");
-        oldText = document.getText(); // 获取文档的旧文本内容
     }
 
     @Override
     public void documentChanged(@NotNull DocumentEvent event) {
-        // 如果当前有任务在执行，不再创建新的任务，防止频繁触发
-        if (isProcessing) {
-            return;
-        }
-        // 取消之前的定时任务并启动新的缓冲任务
-        executorService.shutdownNow(); // 取消之前的定时任务
-        executorService = Executors.newSingleThreadScheduledExecutor(); // 创建新执行器
-        isProcessing = true;// 标记正在处理
-        // 延迟 500ms 更新缓冲区中的文本，并生成增量 diff
-        executorService.schedule(() -> {
-            newText = document.getText(); // 获取最终的文本内容
-            System.out.println("Document changed from: " + oldText + " to: " + newText);
-
-            // 计算文本差异
-            List<String> oldLines = Arrays.asList(oldText.split("\n"));
-            List<String> newLines = Arrays.asList(newText.split("\n"));
-            patch = DiffUtils.diff(oldLines, newLines); // 计算差异
-
-            // 输出差异信息
-            System.out.println("差异信息：: " + patch);
-            for (var delta : patch.getDeltas()) {
-                System.out.println(delta); // 输出每一个差异
+        lock.lock();
+        try {
+            if (isProcessing) {
+                return; // 如果当前有任务在执行，不再创建新的任务
             }
+            // 取消之前的定时任务并启动新的缓冲任务
+            // 只会有一个任务在执行
+            executorService.shutdownNow(); // 取消之前的定时任务
+            executorService = Executors.newSingleThreadScheduledExecutor(); // 创建新执行器
+            isProcessing = true; // 标记正在处理
 
-            // 更新旧文本为新文本
-            oldText = newText;
-            isProcessing = false;
-            System.out.println(document.getLineCount()); // 获取文档的行数
-            // 这里可以调用其他处理方法，例如保存 local history
-            // VersionManager.saveVersion(document);
-        }, DELAY, TimeUnit.MILLISECONDS);
+            // 延迟 DELAY 毫秒更新缓冲区中的文本，并生成增量 diff
+            // 使用 executorService.shutdownNow() 来取消之前的定时任务，然后重新安排一个新的任务。
+            // 这确保在多次快速更改时，只有最后一次的更改会被处理。
+            // 这样可以避免在多次快速更改时，多次触发 diff 计算。
+            executorService.schedule(() -> {
+                try {
+                    newText = document.getText(); // 获取最终的文本内容
+                    System.out.println("Document changed from: " + oldText + " to: " + newText);
+
+                    // 计算文本差异
+                    List<String> oldLines = Arrays.asList(oldText.split("\n"));
+                    List<String> newLines = Arrays.asList(newText.split("\n"));
+                    patch = DiffUtils.diff(oldLines, newLines); // 计算差异
+
+                    // 输出差异信息
+                    System.out.println("差异信息：: " + patch);
+                    for (var delta : patch.getDeltas()) {
+                        switch (delta.getType()) {
+                            case INSERT:
+                                System.out.println("插入: " + delta); // 打印插入的差异
+                                break;
+                            case DELETE:
+                                System.out.println("删除: " + delta); // 打印删除的差异
+                                break;
+                            case CHANGE:
+                                System.out.println("更改: " + delta); // 打印更改的差异
+                                break;
+                        }
+                    }
+                    // 更新旧文本为新文本
+                    oldText = newText;
+                } catch (Exception e) {
+                    System.err.println("差异计算出错: " + e.getMessage());
+                } finally {
+                    isProcessing = false; // 处理完成，重置标志
+                }
+            }, DELAY, TimeUnit.MILLISECONDS);
+        } finally {
+            lock.unlock();
+        }
     }
 
     // 清理资源的方法
@@ -102,7 +121,12 @@ public class DocListener implements DocumentListener {
         }
     }
 
-    public Patch getPatch() {
+    // 获取文本差异的方法
+    public Patch<String> getPatch() {
         return patch;
+    }
+    // 获得当前是否更新patch的状态
+    public boolean getIsProcessing() {
+        return isProcessing;
     }
 }

@@ -1,6 +1,7 @@
 package com.github.nolonlearner.ascintelijplugin.listeners;
 // src/main/java/com/github/nolonlearner/ascintelijplugin/listeners/ActionListener.java
 
+import com.github.difflib.patch.Patch;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveManager;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.LineCount;
@@ -24,7 +25,7 @@ public class ActionListener extends DocListener {
         this.autoSaveManager = autoSaveManager;
 
         // 注册关于用户动作的条件
-        autoSaveManager.addCondition(new LineCount(10));// 如果写代码超过十行
+        autoSaveManager.addCondition(new LineCount(5));// 如果写代码超过五行
         autoSaveManager.addCondition(new PrintReturn());// 如果打印了return;
     }
 
@@ -32,7 +33,11 @@ public class ActionListener extends DocListener {
     public void documentChanged(@NotNull DocumentEvent event) {
         // 当检测到文档变化时
         super.documentChanged(event); // 调用父类的 documentChanged 方法
-        System.out.println("ActionListener.documentChanged");// 输出信息
+
+        Patch<String> patch = getPatch();// 计算文本差异
+        System.out.println("Patch 更新");// 输出信息
+        System.out.println(patch);// 输出 patch
+
         // 获取当前文档和 PsiElement
         Document document = event.getDocument();
         PsiElement psiElement = getCurrentPsiElement(document); // 假设实现这个方法
