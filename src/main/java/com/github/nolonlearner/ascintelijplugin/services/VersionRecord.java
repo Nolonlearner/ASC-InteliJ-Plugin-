@@ -1,6 +1,7 @@
 package com.github.nolonlearner.ascintelijplugin.services;
 
 import java.util.ArrayList;
+
 import java.util.List;
 
 public class VersionRecord {

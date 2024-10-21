@@ -49,3 +49,55 @@ Plugin based on the [IntelliJ Platform Plugin Template][template].
 
 [template]: https://github.com/JetBrains/intellij-platform-plugin-template
 [docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
+
+
+# Listeners 文件夹说明
+
+此文件夹包含 IntelliJ IDEA 插件中的监听器类，负责监控文档和文件的变化。以下是各个类的简要介绍。
+
+## 1. DocListener
+
+- **路径**: `com.github.nolonlearner.ascintelijplugin.listeners.DocListener`
+- **功能**: 监控文档内容的变化。
+- **主要方法**:
+  - `beforeDocumentChange(DocumentEvent event)`: 记录旧文本。
+  - `documentChanged(DocumentEvent event)`: 记录新文本并打印变化信息。
+
+## 2. DocVirtualListener
+
+- **路径**: `com.github.nolonlearner.ascintelijplugin.listeners.DocVirtualListener`
+- **功能**: 监控虚拟文件的变化。
+- **主要方法**:
+  - `fileCreated(VirtualFileEvent event)`: 处理文件创建。
+  - `fileDeleted(VirtualFileEvent event)`: 处理文件删除。
+  - `contentsChanged(VirtualFileEvent event)`: 处理文件内容改变。
+
+## 3. ListenerManager
+
+- **路径**: `com.github.nolonlearner.ascintelijplugin.listeners.ListenerManager`
+- **功能**: 管理文档和虚拟文件的监听器。
+- **主要方法**:
+  - `editorCreated(EditorFactoryEvent event)`: 注册 `DocListener`。
+  - `editorReleased(EditorFactoryEvent event)`: 移除 `DocListener`。
+  - `bindToAlreadyOpenedEditors()`: 绑定已打开的编辑器。
+
+## 4. 概念解释
+
+- **Document**: 文本文件内容的表示，支持修改和撤销。
+- **VirtualFile**: 对文件系统的抽象表示。
+- **FileDocumentManager**: 管理 `Document` 和 `VirtualFile` 的关系。
+- **DocumentListener**: 监听文档内容变化的接口。
+- **VirtualFileListener**: 监听虚拟文件变化的接口。
+
+## 5. 使用说明
+
+在项目启动时创建 `ListenerManager` 实例来初始化和注册所有监听器。
+
+```java
+public class MyStartupActivity implements StartupActivity {
+    @Override
+    public void runActivity(@NotNull Project project) {
+        new ListenerManager(project);  // 初始化监听器
+    }
+}
+
