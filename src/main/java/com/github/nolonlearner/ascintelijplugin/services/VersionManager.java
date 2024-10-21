@@ -87,9 +87,11 @@ public class VersionManager {
         // 根据版本数量决定是否保存完整内容
         boolean isFullContent = (versionCount % 5 == 0);
 
+
         // 创建新的版本记录，包含变更和当前文件内容
         VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes, currentLines, isFullContent);
         addVersion(filePath, newVersion);  // 将新版本记录添加到历史记录中
+        
 
         // 保存完整内容
         saveFullContent(filePath, versionId, currentLines);
