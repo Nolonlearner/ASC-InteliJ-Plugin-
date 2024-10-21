@@ -77,18 +77,20 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             for (VersionRecord version : versions) {
                 if (version.getVersionId().equals(versionId)) {
                     VersionRecord previousVersion = findNearestFullContentVersion(versions, version);
-                    if (previousVersion != null) {
-                        // 这里调用需要是两个 VersionRecord 参数的 applyChangesToFile
-                        applyChangesToFile(filePath, previousVersion, version); // 确保此行的参数类型匹配
-                        JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
 
-                        // 刷新编辑器中的文件内容
-                        VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
-                        if (virtualFile != null) {
-                            FileEditorManager.getInstance(project).openFile(virtualFile, true);
-                        }
+                    // 修改为：当找不到完整内容版本时，调用rollbackToVersion
+                    if (previousVersion != null) {
+                        applyChangesToFile(filePath, previousVersion, version);
                     } else {
-                        JOptionPane.showMessageDialog(null, "未找到完整内容版本，无法回滚。", "错误", JOptionPane.ERROR_MESSAGE);
+                        rollbackManager.rollbackToVersion(project, filePath, versionId);
+                    }
+
+                    JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
+
+                    // 刷新编辑器中的文件内容
+                    VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
+                    if (virtualFile != null) {
+                        FileEditorManager.getInstance(project).openFile(virtualFile, true);
                     }
                     return;
                 }
@@ -98,6 +100,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
 
     private VersionRecord findNearestFullContentVersion(LinkedList<VersionRecord> versions, VersionRecord targetVersion) {
@@ -217,22 +220,6 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
-
-
-
-    // 生成文件内容的哈希值
-    private String generateFileHash(List<String> lines) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            for (String line : lines) {
-                digest.update(line.getBytes(StandardCharsets.UTF_8));
-            }
-            byte[] hash = digest.digest();
-            return Base64.getEncoder().encodeToString(hash);  // 将哈希值编码为字符串
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("哈希算法不存在", e);
-        }
-    }
 
 
 

@@ -34,15 +34,14 @@ public class RollbackManager {
                 targetVersion = version;
             }
             if (version.isFullContent()) {
-                lastFullContentVersion = version;  // 更新最近的完整版本
+                lastFullContentVersion = version;
             }
             if (targetVersion != null && lastFullContentVersion != null) {
-                break;  // 找到目标版本和最近完整版本，停止循环
+                break;
             }
         }
 
         if (targetVersion != null && lastFullContentVersion != null) {
-            // 从最近的完整版本开始应用变更
             int startIndex = versions.indexOf(lastFullContentVersion);
             int targetIndex = versions.indexOf(targetVersion);
 
@@ -51,10 +50,17 @@ public class RollbackManager {
                 applyChangesToFile(filePath, currentVersion.getChanges());
             }
 
-            // 将目标版本的完整内容写入当前文件
+            // 将目标版本的完整内容写入文件
             writeFileContent(filePath, targetVersion.getLines());
+
+            // 刷新IDE中的文件
+            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
+            if (virtualFile != null) {
+                FileEditorManager.getInstance(project).openFile(virtualFile, true);
+            }
         }
     }
+
 
     // 应用变更到文件
     private void applyChangesToFile(String filePath, List<Change> changes) {

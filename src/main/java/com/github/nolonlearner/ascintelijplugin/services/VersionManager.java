@@ -74,9 +74,12 @@ public class VersionManager {
             return;
         }
 
-        // 获取上一版本的文件内容
+        // 获取上一版本的 versionId
         VersionRecord previousVersion = versions.get(versionCount - 1);
-        List<String> previousLines = previousVersion.getLines();
+        String previousVersionId = previousVersion.getVersionId();
+
+        // 根据上一版本的 versionId 构建文件路径，读取完整内容
+        List<String> previousLines = readFullContentFromFile(filePath, previousVersionId);
 
         // 使用 diff 比较当前文件和上一版本的文件，生成变更记录
         List<Change> changes = getChangesFromDiff(previousLines, currentLines);
@@ -104,35 +107,51 @@ public class VersionManager {
         }
     }
 
+    // 读取文件系统中的完整内容
+    private List<String> readFullContentFromFile(String filePath, String versionId) {
+        String fullContentFilePath = filePath + ".content.v" + versionId;  // 构建文件路径
+        try {
+            return Files.readAllLines(Paths.get(fullContentFilePath), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ArrayList<>();  // 返回空列表以防止进一步错误
+        }
+    }
+
     // 使用 DiffUtils 计算变更记录并获取行号
     private List<Change> getChangesFromDiff(List<String> oldLines, List<String> newLines) {
         List<Change> changes = new ArrayList<>();
-
         Patch<String> patch = DiffUtils.diff(oldLines, newLines);
 
         for (AbstractDelta<String> delta : patch.getDeltas()) {
             DeltaType type = delta.getType();
             List<String> sourceLines = delta.getSource().getLines();  // 旧版本的行
             List<String> targetLines = delta.getTarget().getLines();  // 新版本的行
-            int lineNumber = delta.getSource().getPosition();  // 获取起始行号
+            int sourcePosition = delta.getSource().getPosition();  // 旧版本行的起始位置
+            int targetPosition = delta.getTarget().getPosition();  // 新版本行的起始位置
 
             switch (type) {
                 case INSERT:
                     for (String line : targetLines) {
-                        changes.add(new Change("ADD", line, lineNumber));
-                        lineNumber++;
+                        changes.add(new Change("ADD", line, targetPosition)); // 使用新行位置
+                        targetPosition++;
                     }
                     break;
                 case DELETE:
                     for (String line : sourceLines) {
-                        changes.add(new Change("DELETE", line, lineNumber));
-                        lineNumber++;
+                        changes.add(new Change("DELETE", line, sourcePosition));
+                        sourcePosition++;
                     }
                     break;
                 case CHANGE:
+                    // 处理修改情况，先删除旧行再添加新行
+                    for (String line : sourceLines) {
+                        changes.add(new Change("DELETE", line, sourcePosition));
+                        sourcePosition++;
+                    }
                     for (String line : targetLines) {
-                        changes.add(new Change("MODIFY", line, lineNumber));
-                        lineNumber++;
+                        changes.add(new Change("MODIFY", line, targetPosition)); // 使用目标位置
+                        targetPosition++;
                     }
                     break;
             }
@@ -140,6 +159,7 @@ public class VersionManager {
 
         return changes;
     }
+
 
     // 保存完整文件内容
     private void saveFullContent(String filePath, String versionId, List<String> lines) {
