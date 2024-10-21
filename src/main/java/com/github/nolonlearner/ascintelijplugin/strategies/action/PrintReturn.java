@@ -1,5 +1,6 @@
 package com.github.nolonlearner.ascintelijplugin.strategies.action;
 // src/main/java/com/github/nolonlearner/ascintelijplugin/strategies/action/PrintReturn.java
+import com.github.difflib.patch.Patch;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
@@ -21,8 +22,8 @@ public class PrintReturn implements AutoSaveCondition {
     @Override
     public boolean shouldSave(AutoSaveContext context) {
         // 判断是否打印了return;
-        Document document = context.getDocument();
-        String text = document.getText();
+        Patch<String> patch = context.getPatch();
+        String text = patch.toString();
         return text.contains("return;");
     }
 

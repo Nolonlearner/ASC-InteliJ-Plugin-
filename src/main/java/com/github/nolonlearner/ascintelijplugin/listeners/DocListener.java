@@ -27,6 +27,8 @@ public class DocListener implements DocumentListener {
     private boolean isProcessing; // 标志当前是否正在处理 diff
     private final ReentrantLock lock = new ReentrantLock(); // 线程安全锁
 
+    private PatchUpdateListener patchUpdateListener; // 增加patch监听器
+
     public DocListener() {
         this.document = null;
         this.oldText = "";
@@ -101,6 +103,13 @@ public class DocListener implements DocumentListener {
                                 break;
                         }
                     }
+
+                    // 通知 ActionListener Patch 更新
+                    if (patchUpdateListener != null) {
+                        System.out.println("通知 ActionListener Patch 更新，"+ patchUpdateListener);
+                        patchUpdateListener.onPatchUpdated(patch);
+                    }
+
                     // 更新旧文本为新文本
                     oldText = newText;
                 } catch (Exception e) {
@@ -114,6 +123,12 @@ public class DocListener implements DocumentListener {
         }
     }
 
+
+    // 在 patch 更新后通知监听器
+    public void setPatchUpdateListener(PatchUpdateListener listener) {
+        this.patchUpdateListener = listener;
+    }
+
     // 清理资源的方法
     public void shutdown() {
         if (executorService != null && !executorService.isShutdown()) {
@@ -125,6 +140,12 @@ public class DocListener implements DocumentListener {
     public Patch<String> getPatch() {
         return patch;
     }
+
+    // 获取文档对象的方法
+    public Document getDocument() {
+        return document;
+    }
+
     // 获得当前是否更新patch的状态
     public boolean getIsProcessing() {
         return isProcessing;
