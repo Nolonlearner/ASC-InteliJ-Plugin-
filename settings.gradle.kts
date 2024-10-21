@@ -5,3 +5,4 @@ plugins {
 rootProject.name = "ASC-InteliJ-Plugin-"
 include("src:main:Java")
 findProject(":src:main:Java")?.name = "Java"
+
