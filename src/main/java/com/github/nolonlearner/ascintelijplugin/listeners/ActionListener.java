@@ -7,7 +7,6 @@ import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContex
 import com.github.nolonlearner.ascintelijplugin.strategies.action.BlockEdit;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.LineCount;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.PrintReturn;
-import com.github.nolonlearner.ascintelijplugin.strategies.structure.SaveOnStructureChangeCondition;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.psi.PsiElement;
@@ -60,5 +59,9 @@ public class ActionListener extends DocListener implements PatchUpdateListener{
         AutoSaveContext context = new AutoSaveContext(patch, document, psiElement);
         autoSaveManager.evaluateConditions(context); // 根据 Patch 和 psi 变化进行策略判断和保存操作
 
+    }
+
+    public void setPsiElement(PsiElement psiElement) {
+        this.psiElement = psiElement;
     }
 }

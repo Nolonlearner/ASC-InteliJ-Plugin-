@@ -4,25 +4,32 @@ import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondit
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
 
-/*
-    * 时间自动保存条件，每隔2mins自动保存一次
-    * 实现了 AutoSaveCondition 接口
-    * 属性：
-        AutoSavePriority priority: 优先级
-    * 方法：
-        shouldSave: 判断是否需要保存;
-        getPriority: 返回优先级
- */
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class TimeAutoSave implements AutoSaveCondition {
-    private final long saveInterval = 60*1000*2;// 2mins
-    AutoSavePriority priority = AutoSavePriority.TIME;
+
+    private final long saveInterval = 1* 60 * 1000; // 1分钟的保存间隔
+    private final AutoSavePriority priority = AutoSavePriority.TIME;
+    private long lastSaveTime = 0; // 上一次保存的时间戳
+
     @Override
     public boolean shouldSave(AutoSaveContext context) {
-        return false;
+        long currentTime = System.currentTimeMillis();
+
+        // 判断是否达到保存间隔
+        if (currentTime - lastSaveTime >= saveInterval) {
+            lastSaveTime = currentTime; // 更新保存时间
+            System.out.println("达到时间间隔，触发自动保存");
+            return true; // 返回 true 表示应该进行保存
+        }
+        System.out.println("未达到时间间隔，不保存");
+        return false; // 未达到时间间隔，不保存
     }
+
     @Override
     public AutoSavePriority getPriority() {
-        return priority;
+        return priority; // 返回基于时间的优先级
     }
 }
