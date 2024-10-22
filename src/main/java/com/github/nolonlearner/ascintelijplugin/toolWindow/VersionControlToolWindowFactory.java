@@ -51,7 +51,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         showHistoryButton.addActionListener(e -> showVersionHistory(project));
 
         JButton rollbackButton = new JButton("回滚到最新版本");
-        rollbackButton.addActionListener(e -> rollbackToLatestVersion(project));
+        rollbackButton.addActionListener(e -> rollbackToSpecificVersion(project,true));
 
         JButton rollbackToSpecificButton = new JButton("回滚到特定版本");
         rollbackToSpecificButton.addActionListener(e -> rollbackToSpecificVersion(project));
@@ -68,12 +68,24 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     }
 
     private void rollbackToSpecificVersion(Project project) {
+        rollbackToSpecificVersion(project,false);
+    }
+
+    private void rollbackToSpecificVersion(Project project,boolean ToLatest) {
         VirtualFile currentFile = getCurrentFile(project);
         if (currentFile != null) {
             String filePath = currentFile.getPath();
             LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
 
-            String versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
+            String versionId;
+            if(ToLatest) {
+                // 获取最新版本的ID
+                VersionRecord latestVersion = versions.getLast();
+                versionId = latestVersion.getVersionId();
+            }
+            else{
+                versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
+            }
             for (VersionRecord version : versions) {
                 if (version.getVersionId().equals(versionId)) {
                     VersionRecord previousVersion = findNearestFullContentVersion(versions, version);
@@ -90,8 +102,10 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                     // 刷新编辑器中的文件内容
                     VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
                     if (virtualFile != null) {
-                        FileEditorManager.getInstance(project).openFile(virtualFile, true);
+                        virtualFile.refresh(false, false);  // 强制刷新文件内容
+                        FileEditorManager.getInstance(project).openFile(virtualFile, true);  // 确保文件重新打开
                     }
+
                     return;
                 }
             }
@@ -100,8 +114,6 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
-
-
 
     private VersionRecord findNearestFullContentVersion(LinkedList<VersionRecord> versions, VersionRecord targetVersion) {
         // 从目标版本开始向前查找最近的完整内容版本
@@ -176,22 +188,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
-    private void rollbackToLatestVersion(Project project) {
-        VirtualFile currentFile = getCurrentFile(project);
 
-        if (currentFile != null) {
-            String filePath = currentFile.getPath();
-            rollbackManager.rollbackToLatest(project, filePath);
-            // 可以在这里添加日志以确认回滚成功
-            VersionRecord latestVersion = versionManager.getLatestVersion(filePath);
-            if (latestVersion != null) {
-                System.out.println("已回滚到版本 ID: " + latestVersion.getVersionId());
-            }
-            JOptionPane.showMessageDialog(null, "已回滚到最新版本", "回滚成功", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
-        }
-    }
 
 
     private void saveCurrentVersion(Project project) {
@@ -219,11 +216,6 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
-
-
-
-
-
 
     private VirtualFile getCurrentFile(Project project) {
         return FileEditorManager.getInstance(project).getSelectedEditors().length > 0
