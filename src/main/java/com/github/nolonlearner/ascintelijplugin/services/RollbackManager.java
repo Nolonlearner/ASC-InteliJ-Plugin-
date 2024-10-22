@@ -1,6 +1,8 @@
 package com.github.nolonlearner.ascintelijplugin.services;
 
 
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
@@ -50,16 +52,39 @@ public class RollbackManager {
                 applyChangesToFile(filePath, currentVersion.getChanges());
             }
 
+            // 获取文件的当前内容
+            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
+            String originalContent = null;
+            if (virtualFile != null) {
+                try {
+                    originalContent = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
             // 将目标版本的完整内容写入文件
             writeFileContent(filePath, targetVersion.getLines());
 
-            // 刷新IDE中的文件
-            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
-            if (virtualFile != null) {
-                FileEditorManager.getInstance(project).openFile(virtualFile, true);
+            // 获取回滚后的内容
+            String newContent = null;
+            try {
+                newContent = Files.readString(Paths.get(filePath), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // 如果文件内容发生变化，才刷新并重新打开
+            if (originalContent != null && !originalContent.equals(newContent)) {
+                if (virtualFile != null) {
+                    virtualFile.refresh(false, false);
+                    FileDocumentManager.getInstance().reloadFromDisk(FileDocumentManager.getInstance().getDocument(virtualFile));
+                    FileEditorManager.getInstance(project).openFile(virtualFile, true);
+                }
             }
         }
     }
+
 
 
     // 应用变更到文件
@@ -97,45 +122,6 @@ public class RollbackManager {
         try {
             Files.write(Paths.get(filePath), lines, StandardCharsets.UTF_8);
             System.out.println("已回滚到版本: " + filePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-
-    // 回滚到最新版本
-    public void rollbackToLatest(Project project, String filePath) {
-        VersionRecord latestVersion = versionManager.getLatestVersion(filePath);
-        if (latestVersion != null) {
-            applyVersion(project, filePath, latestVersion);  // 传递 project 参数
-        }
-        // 刷新文件视图和编辑器状态
-        FileUtils.refreshFileView(filePath);
-        FileUtils.refreshEditor(project, filePath);  // 传递 project 参数
-    }
-
-
-    // 应用变更到文件中
-    private void applyVersion(Project project, String filePath, VersionRecord versionRecord) {
-        List<Change> changes = versionRecord.getChanges();
-        StringBuilder fileContent = new StringBuilder();
-
-        for (Change change : changes) {
-            fileContent.append(change.getContent()).append("\n");
-        }
-
-        // 写入文件
-        try {
-            Files.write(Paths.get(filePath), fileContent.toString().getBytes());
-
-            // 刷新编辑器中的文件内容
-            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
-            if (virtualFile != null) {
-                // 刷新文件视图和编辑器状态
-                FileEditorManager.getInstance(project).openFile(virtualFile, true);
-            }
-
         } catch (IOException e) {
             e.printStackTrace();
         }

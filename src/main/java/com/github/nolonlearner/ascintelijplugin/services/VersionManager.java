@@ -5,7 +5,7 @@ import com.github.difflib.patch.DeltaType;
 import com.github.difflib.patch.DiffException;
 import com.github.difflib.patch.Patch;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,6 +14,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 
 public class VersionManager {
@@ -22,6 +25,53 @@ public class VersionManager {
 
     public VersionManager() {
         fileVersionHistory = new HashMap<>();
+    }
+
+
+    // 保存历史记录到文件系统，写入前先清空文件
+    private void saveVersionHistory(String filePath, List<VersionRecord> versions) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath + ".history", false))) {
+            oos.writeObject(versions);
+            System.out.println("历史记录已保存: " + filePath + ".history");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 清空历史记录
+    public void clearVersionHistory(String filePath) {
+        File historyFile = new File(filePath + ".history");
+        if (historyFile.exists()) {
+            try (FileOutputStream fos = new FileOutputStream(historyFile)) {
+                // 写入空内容，清空文件
+                fos.write(new byte[0]);
+                System.out.println("历史记录已清空");
+            } catch (IOException e) {
+                System.err.println("无法清空历史记录: " + e.getMessage());
+            }
+        } else {
+            System.out.println("历史记录文件不存在");
+        }
+
+        // 清空内存中的记录fileVersionHistory
+        fileVersionHistory.clear();
+        System.out.println("fileVersionHistory 已清空");
+    }
+
+
+
+    // 从文件系统中加载历史记录
+    public void addVersion_history(String filePath) {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath + ".history"))) {
+            List<VersionRecord> versionHistory = (List<VersionRecord>) ois.readObject();
+            if (versionHistory != null) {
+                for (VersionRecord version : versionHistory) {
+                    addVersion(filePath, version);
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     // 添加版本记录
@@ -43,10 +93,14 @@ public class VersionManager {
     }
 
     // 生成递增的版本ID，格式化为8位数字
-    private String generateVersionId() {
+    public String generateVersionId() {
         String versionId = String.format("%08d", currentVersionId);
         currentVersionId++; // 每次生成ID后递增
         return versionId;
+    }
+
+    public void resetVersionId() {
+        currentVersionId = 1;
     }
 
     private String getCurrentTimestamp() {
@@ -54,8 +108,7 @@ public class VersionManager {
     }
 
     // 保存当前版本
-    public void saveVersion(String filePath, List<String> currentLines) {
-        String versionId = generateVersionId();  // 生成唯一的版本 ID
+    public void saveVersion(String filePath, List<String> currentLines,String versionId) {
         String timestamp = getCurrentTimestamp();  // 获取当前时间戳
 
         // 获取当前版本数量
@@ -88,27 +141,29 @@ public class VersionManager {
         // 创建新的版本记录，包含变更和当前文件内容
         VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes, currentLines, isFullContent);
         addVersion(filePath, newVersion);  // 将新版本记录添加到历史记录中
-        
+
 
         // 保存完整内容
         saveFullContent(filePath, versionId, currentLines);
 
         // 保存变更记录
         saveChangeRecords(filePath, versionId, changes);
+        // 更新文件系统中的历史记录存档
+        saveVersionHistory(filePath, versions);
 
         // 删除上一版本的存档文件，根据当前版本的类型决定删除内容还是变更记录
         if(versionCount>1){
             if (previousVersion.isFullContent()) {
-                deleteFile(filePath + ".changes.v" + previousVersion.getVersionId());
+                deleteFile(filePath + ".changes.v" + previousVersion.getVersionId()+".save");
             } else {
-                deleteFile(filePath + ".content.v" + previousVersion.getVersionId());
+                deleteFile(filePath + ".content.v" + previousVersion.getVersionId()+".save");
             }
         }
     }
 
     // 读取文件系统中的完整内容
     private List<String> readFullContentFromFile(String filePath, String versionId) {
-        String fullContentFilePath = filePath + ".content.v" + versionId;  // 构建文件路径
+        String fullContentFilePath = filePath + ".content.v" + versionId+".save";  // 构建文件路径
         try {
             return Files.readAllLines(Paths.get(fullContentFilePath), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -162,7 +217,7 @@ public class VersionManager {
 
     // 保存完整文件内容
     private void saveFullContent(String filePath, String versionId, List<String> lines) {
-        String contentFilePath = filePath + ".content.v" + versionId;
+        String contentFilePath = filePath + ".content.v" + versionId+".save";
         try {
             Files.write(Paths.get(contentFilePath), lines, StandardCharsets.UTF_8);
             System.out.println("完整文件内容已保存: " + contentFilePath);
@@ -174,7 +229,7 @@ public class VersionManager {
 
     // 保存变更记录
     private void saveChangeRecords(String filePath, String versionId, List<Change> changes) {
-        String changesFilePath = filePath + ".changes.v" + versionId;
+        String changesFilePath = filePath + ".changes.v" + versionId+".save";
         try {
             List<String> changesAsStrings = changes.stream()
                     .map(change -> change.getChangeType() + " (Line " + change.getLineNumber() + "): " + change.getContent())
