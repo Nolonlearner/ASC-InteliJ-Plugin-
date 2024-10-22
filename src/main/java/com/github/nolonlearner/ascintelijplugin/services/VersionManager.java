@@ -96,10 +96,14 @@ public class VersionManager {
     }
 
     // 生成递增的版本ID，格式化为8位数字
-    private String generateVersionId() {
+    public String generateVersionId() {
         String versionId = String.format("%08d", currentVersionId);
         currentVersionId++; // 每次生成ID后递增
         return versionId;
+    }
+
+    public void resetVersionId() {
+        currentVersionId = 1;
     }
 
     private String getCurrentTimestamp() {
@@ -107,8 +111,7 @@ public class VersionManager {
     }
 
     // 保存当前版本
-    public void saveVersion(String filePath, List<String> currentLines) {
-        String versionId = generateVersionId();  // 生成唯一的版本 ID
+    public void saveVersion(String filePath, List<String> currentLines,String versionId) {
         String timestamp = getCurrentTimestamp();  // 获取当前时间戳
 
         // 获取当前版本数量
@@ -154,16 +157,16 @@ public class VersionManager {
         // 删除上一版本的存档文件，根据当前版本的类型决定删除内容还是变更记录
         if(versionCount>1){
             if (previousVersion.isFullContent()) {
-                deleteFile(filePath + ".changes.v" + previousVersion.getVersionId());
+                deleteFile(filePath + ".changes.v" + previousVersion.getVersionId()+".save");
             } else {
-                deleteFile(filePath + ".content.v" + previousVersion.getVersionId());
+                deleteFile(filePath + ".content.v" + previousVersion.getVersionId()+".save");
             }
         }
     }
 
     // 读取文件系统中的完整内容
     private List<String> readFullContentFromFile(String filePath, String versionId) {
-        String fullContentFilePath = filePath + ".content.v" + versionId;  // 构建文件路径
+        String fullContentFilePath = filePath + ".content.v" + versionId+".save";  // 构建文件路径
         try {
             return Files.readAllLines(Paths.get(fullContentFilePath), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -217,7 +220,7 @@ public class VersionManager {
 
     // 保存完整文件内容
     private void saveFullContent(String filePath, String versionId, List<String> lines) {
-        String contentFilePath = filePath + ".content.v" + versionId;
+        String contentFilePath = filePath + ".content.v" + versionId+".save";
         try {
             Files.write(Paths.get(contentFilePath), lines, StandardCharsets.UTF_8);
             System.out.println("完整文件内容已保存: " + contentFilePath);
@@ -229,7 +232,7 @@ public class VersionManager {
 
     // 保存变更记录
     private void saveChangeRecords(String filePath, String versionId, List<Change> changes) {
-        String changesFilePath = filePath + ".changes.v" + versionId;
+        String changesFilePath = filePath + ".changes.v" + versionId+".save";
         try {
             List<String> changesAsStrings = changes.stream()
                     .map(change -> change.getChangeType() + " (Line " + change.getLineNumber() + "): " + change.getContent())
