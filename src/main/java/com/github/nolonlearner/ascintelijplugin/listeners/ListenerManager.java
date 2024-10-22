@@ -60,7 +60,7 @@ public class ListenerManager implements EditorFactoryListener {
 
             // 创建并注册 ActionListener
             SaveDocumentCommand saveDocumentCommand = new SaveDocumentCommand(new FileSave(project, "this is a test path"));
-            AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand);
+            AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand, project);
 
             ActionListener actionListener = new ActionListener(document, autoSaveManager);
             document.addDocumentListener(actionListener);
@@ -134,7 +134,7 @@ public class ListenerManager implements EditorFactoryListener {
 
                 // 创建并注册 ActionListener
                 SaveDocumentCommand saveDocumentCommand = new SaveDocumentCommand(new FileSave(project, "this is a test path"));
-                AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand);
+                AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand, project);
 
                 ActionListener actionListener = new ActionListener(document, autoSaveManager);
                 document.addDocumentListener(actionListener);

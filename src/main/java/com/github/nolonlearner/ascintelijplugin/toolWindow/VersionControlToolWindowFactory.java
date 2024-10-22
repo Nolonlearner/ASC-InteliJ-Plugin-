@@ -194,7 +194,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     }
 
 
-    private void saveCurrentVersion(Project project) {
+    public  void saveCurrentVersion(Project project) {
         VirtualFile currentFile = getCurrentFile(project);
 
         if (currentFile != null) {

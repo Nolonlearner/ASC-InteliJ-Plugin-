@@ -2,23 +2,31 @@ package com.github.nolonlearner.ascintelijplugin.services.AutoSave;
 // src/main/java/com/github/nolonlearner/ascintelijplugin/services/AutoSave/AutoSaveManager.java
 
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.project.Project;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import com.github.nolonlearner.ascintelijplugin.toolWindow.VersionControlToolWindowFactory;
 
 public class AutoSaveManager {
     private final List<AutoSaveCondition> conditions;// 保存所有的自动保存条件
     private final SaveCommand saveCommand;// 保存命令
     private String lastSavedContent; // 存储上一次保存的文档内容
     private AutoSaveCondition hitedCondition; // 保存命中的条件
+    private Project project; // 项目实例
+    private VersionControlToolWindowFactory versionControlToolWindowFactory; // 工具窗口工厂的实例
 
-    public AutoSaveManager(SaveCommand saveCommand) {
+    public AutoSaveManager(SaveCommand saveCommand, Project project) {
         this.conditions = new ArrayList<>();
         this.saveCommand = saveCommand;
         this.lastSavedContent = ""; // 初始为空
         hitedCondition = null;
+        this.project = project;
+
+        // 实例化 VersionControlToolWindowFactory
+        this.versionControlToolWindowFactory = new VersionControlToolWindowFactory();
 
     }
 
@@ -47,7 +55,8 @@ public class AutoSaveManager {
                     saveCommand.execute(document);
                     lastSavedContent = text; // 更新最后保存的内容
                     hitedCondition = condition; // 更新命中的条件
-
+                    // 保存后退出循环
+                    versionControlToolWindowFactory.saveCurrentVersion(this.project);
                     break; // 一旦找到满足条件的策略，退出循环
                 }
             }
