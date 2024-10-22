@@ -393,9 +393,11 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
             if (currentFile != null) {
                 String filePath = currentFile.getPath();
-                LinkedList<VersionRecord> versions = readVersionHistory(project,filePath);
+                // 读取版本历史记录
+                HashMap<String, List<VersionRecord>> fileHistories = readVersionHistory(project);
 
-                // 检查是否存在版本记录
+                // 检查当前文件是否存在历史记录
+                List<VersionRecord> versions = fileHistories.get(filePath);
                 if (versions == null || versions.isEmpty()) {
                     JOptionPane.showMessageDialog(null, "没有找到历史记录。", "版本历史", JOptionPane.INFORMATION_MESSAGE);
                     return;
@@ -422,17 +424,19 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     }
 
     // 读取 JSON 格式的历史记录
-    private LinkedList<VersionRecord> readVersionHistory(Project project,String filePath) {
+    private HashMap<String, List<VersionRecord>> readVersionHistory(Project project) {
         Gson gson = new Gson();
         String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
         try (FileReader reader = new FileReader(projectPath + "/history.txt")) {
-            Type versionListType = new TypeToken<LinkedList<VersionRecord>>() {}.getType();
-            return gson.fromJson(reader, versionListType);
+            // 读取为 HashMap<String, List<VersionRecord>>
+            Type fileHistoriesType = new TypeToken<HashMap<String, List<VersionRecord>>>() {}.getType();
+            return gson.fromJson(reader, fileHistoriesType);
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
     }
+
 
 
     private void saveCurrentVersion(Project project,VirtualFile currentFile,String versionId) {

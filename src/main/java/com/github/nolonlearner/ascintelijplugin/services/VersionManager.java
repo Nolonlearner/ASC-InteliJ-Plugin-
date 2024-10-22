@@ -31,29 +31,57 @@ public class VersionManager {
         fileVersionHistory = new HashMap<>();
     }
 
-
     // 保存历史记录到文件系统，使用 JSON 格式，写入前先清空文件
     // 保存所有文件的历史记录到项目目录下的单个文件 "history.txt"
-    public void saveVersionHistory(Project project) {
-        String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
+public void saveVersionHistory(Project project) {
+    String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
 
-        if (projectPath == null) {
-            System.out.println("无法获取项目路径");
-            return;
-        }
+    if (projectPath == null) {
+        System.out.println("无法获取项目路径");
+        return;
+    }
+    System.out.println("项目路径:"+projectPath);
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create(); // 使用 pretty-print 格式化输出
-        String historyFilePath = projectPath + "/history.txt";
+    if (fileVersionHistory == null || fileVersionHistory.isEmpty()) {
+        System.out.println("没有历史记录可保存。");
+        return;
+    }
 
-        try (FileWriter writer = new FileWriter(historyFilePath, false)) { // 每次保存时清空文件
-            // 将文件历史记录转换为 JSON
-            String jsonContent = gson.toJson(fileVersionHistory);
-            writer.write(jsonContent);
-            System.out.println("所有文件的历史记录已保存为 JSON 格式: " + historyFilePath);
+    Gson gson = new GsonBuilder().setPrettyPrinting().create(); // 使用 pretty-print 格式化输出
+    String historyFilePath = projectPath + "/history.txt";
+
+    try (FileWriter writer = new FileWriter(historyFilePath, false)) { // 每次保存时清空文件
+        // 将文件历史记录转换为 JSON
+        String jsonContent = gson.toJson(fileVersionHistory);
+        writer.write(jsonContent);
+        System.out.println("所有文件的历史记录已保存为 JSON 格式: " + historyFilePath);
+    } catch (IOException e) {
+        System.out.println("保存历史记录时发生错误。");
+        e.printStackTrace();
+        return; // 若出现异常则不继续后面的检查
+    }
+
+    // 检查文件是否成功创建
+    File historyFile = new File(historyFilePath);
+    if (historyFile.exists()) {
+        System.out.println("文件创建成功: " + historyFilePath);
+
+        // 检查文件内容是否写入成功
+        try {
+            String content = new String(Files.readAllBytes(Paths.get(historyFilePath)));
+            if (content.isEmpty()) {
+                System.out.println("警告：文件内容为空！");
+            } else {
+                System.out.println("文件内容已成功写入。");
+            }
         } catch (IOException e) {
+            System.out.println("读取文件内容时发生错误。");
             e.printStackTrace();
         }
+    } else {
+        System.out.println("文件未成功创建: " + historyFilePath);
     }
+}
 
 
     // 清空历史记录
@@ -141,6 +169,8 @@ public class VersionManager {
             addVersion(filePath, newVersion);
             saveFullContent(filePath, versionId, currentLines);  // 保存完整文件
             System.out.println("初始化版本已保存 (完整内容): " + versionId);
+            // 更新文件系统中的历史记录存档
+            saveVersionHistory(project);
             return;
         }
 
@@ -166,7 +196,6 @@ public class VersionManager {
         // 保存变更记录
         saveChangeRecords(filePath, versionId, changes);
         // 更新文件系统中的历史记录存档
-
         saveVersionHistory(project);
 
         // 删除上一版本的存档文件，根据当前版本的类型决定删除内容还是变更记录
