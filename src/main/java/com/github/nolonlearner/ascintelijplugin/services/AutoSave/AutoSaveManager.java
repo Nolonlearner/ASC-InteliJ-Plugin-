@@ -47,6 +47,7 @@ public class AutoSaveManager {
                     saveCommand.execute(document);
                     lastSavedContent = text; // 更新最后保存的内容
                     hitedCondition = condition; // 更新命中的条件
+
                     break; // 一旦找到满足条件的策略，退出循环
                 }
             }
