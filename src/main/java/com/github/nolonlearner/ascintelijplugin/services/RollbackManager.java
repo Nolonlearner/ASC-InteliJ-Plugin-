@@ -52,17 +52,39 @@ public class RollbackManager {
                 applyChangesToFile(filePath, currentVersion.getChanges());
             }
 
+            // 获取文件的当前内容
+            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
+            String originalContent = null;
+            if (virtualFile != null) {
+                try {
+                    originalContent = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
             // 将目标版本的完整内容写入文件
             writeFileContent(filePath, targetVersion.getLines());
 
-            // 刷新IDE中的文件
-            VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
-            if (virtualFile != null) {
-                FileEditorManager.getInstance(project).openFile(virtualFile, true);
+            // 获取回滚后的内容
+            String newContent = null;
+            try {
+                newContent = Files.readString(Paths.get(filePath), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
+            // 如果文件内容发生变化，才刷新并重新打开
+            if (originalContent != null && !originalContent.equals(newContent)) {
+                if (virtualFile != null) {
+                    virtualFile.refresh(false, false);
+                    FileDocumentManager.getInstance().reloadFromDisk(FileDocumentManager.getInstance().getDocument(virtualFile));
+                    FileEditorManager.getInstance(project).openFile(virtualFile, true);
+                }
+            }
         }
     }
+
 
 
     // 应用变更到文件
