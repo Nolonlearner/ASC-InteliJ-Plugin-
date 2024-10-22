@@ -129,20 +129,15 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                         LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
                         if (versions != null) {
                             if (!versions.isEmpty()) {
-                                System.out.println("AAA");
                                 rollbackToSpecificVersion(file, project, true, "");
                             }
-                            System.out.println("BBB");
                         }
-                        System.out.println("CCC");
                     } catch (Exception e) {
                         System.err.println("Error processing file: " + file.getPath());
                         e.printStackTrace();  // 输出异常堆栈
                     }
-                    System.out.println("DDD");
                 }
             }
-            System.out.println("EEE");
             JOptionPane.showMessageDialog(null, "项目中的所有文件已回滚到最新版本。", "回滚成功", JOptionPane.INFORMATION_MESSAGE);
         } else {
             String versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
@@ -153,20 +148,15 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                         LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
                         if (versions != null) {
                             if (!versions.isEmpty()) {
-                                System.out.println("AAA");
                                 rollbackToSpecificVersion(file, project, false, versionId);
                             }
-                            System.out.println("BBB");
                         }
-                        System.out.println("CCC");
                     } catch (Exception e) {
                         System.err.println("Error processing file: " + file.getPath());
                         e.printStackTrace();  // 输出异常堆栈
                     }
-                    System.out.println("DDD");
                 }
             }
-            System.out.println("EEE");
             JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
         }
     }
@@ -192,19 +182,17 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
-    private void rollbackToSpecificVersion(VirtualFile currentFile,Project project,boolean ToLatest,String versionId) {
+    private void rollbackToSpecificVersion(VirtualFile currentFile, Project project, boolean ToLatest, String versionId) throws IOException {
         if (currentFile != null) {
             String filePath = currentFile.getPath();
             LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
 
             if (versions == null || versions.isEmpty()) {
-                // 如果版本列表为空，显示错误信息
                 JOptionPane.showMessageDialog(null, "没有可用的历史记录。", "错误", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            if(ToLatest) {
-                // 获取最新版本的ID
+            if (ToLatest) {
                 VersionRecord latestVersion;
                 try {
                     latestVersion = versions.getLast();
@@ -214,29 +202,29 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                 }
                 versionId = latestVersion.getVersionId();
             }
-//            else{
-//                versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
-//            }
+
             for (VersionRecord version : versions) {
                 if (version.getVersionId().equals(versionId)) {
                     VersionRecord previousVersion = findNearestFullContentVersion(versions, version);
 
-                    // 修改为：当找不到完整内容版本时，调用rollbackToVersion
+                    // 获取回滚前的文件内容
+                    String originalContent = new String(currentFile.contentsToByteArray(), StandardCharsets.UTF_8);
+
                     if (previousVersion != null) {
                         applyChangesToFile(filePath, previousVersion, version);
                     } else {
                         rollbackManager.rollbackToVersion(project, filePath, versionId);
                     }
 
-                    //JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
-
-                    // 刷新编辑器中的文件内容
+                    // 获取回滚后的文件内容
                     VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
-                    if (virtualFile != null) {
-                        virtualFile.refresh(false, false);  // 强制刷新文件内容
-                        // 强制从磁盘重新加载，避免冲突提示
+                    String newContent = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
+
+                    // 如果文件内容发生了变化，才刷新和重新打开
+                    if (!originalContent.equals(newContent)) {
+                        virtualFile.refresh(false, false);
                         FileDocumentManager.getInstance().reloadFromDisk((Document) virtualFile);
-                        FileEditorManager.getInstance(project).openFile(virtualFile, true);  // 确保文件重新打开
+                        FileEditorManager.getInstance(project).openFile(virtualFile, true);
                     }
 
                     return;
@@ -247,6 +235,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             JOptionPane.showMessageDialog(null, "未找到文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     private VersionRecord findNearestFullContentVersion(LinkedList<VersionRecord> versions, VersionRecord targetVersion) {
         // 从目标版本开始向前查找最近的完整内容版本
