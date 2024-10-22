@@ -26,7 +26,12 @@ public class AutoSaveManager {
         conditions.add(condition);
     }
 
+
     public void evaluateConditions(AutoSaveContext context) {// 评估条件
+        // 确保 context 不为 null
+        if (context == null) {
+            return; // 或者提供默认的上下文来处理无文档情况
+        }
         // 根据优先级排序条件，高优先级优先
 
         conditions.sort((condition1, condition2) ->

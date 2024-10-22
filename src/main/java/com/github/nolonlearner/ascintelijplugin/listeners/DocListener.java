@@ -2,6 +2,7 @@ package com.github.nolonlearner.ascintelijplugin.listeners;
 
 import com.github.difflib.DiffUtils;
 import com.github.difflib.patch.AbstractDelta;
+import com.github.difflib.patch.Chunk;
 import com.github.difflib.patch.DeltaType;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
@@ -149,5 +150,33 @@ public class DocListener implements DocumentListener {
     // 获得当前是否更新patch的状态
     public boolean getIsProcessing() {
         return isProcessing;
+    }
+
+    public void formatPrintPatch() {
+        // 获取所有的 deltas，表示每一块变化
+        List<AbstractDelta<String>> deltas = patch.getDeltas();
+        // 遍历每个 delta 并打印详细信息
+        for (AbstractDelta<String> delta : deltas) {
+            DeltaType type = delta.getType();
+            Chunk<String> source = delta.getSource();
+            Chunk<String> target = delta.getTarget();
+
+            // 打印 delta 的类型 (插入, 删除, 更改)
+            System.out.println("Delta type: " + type);
+
+            // 打印 source (旧文本) 的行数和内容
+            System.out.println("Source position (old text): " + source.getPosition());
+            System.out.println("Source lines (old text):");
+            for (String line : source.getLines()) {
+                System.out.println(line);
+            }
+
+            // 打印 target (新文本) 的行数和内容
+            System.out.println("Target position (new text): " + target.getPosition());
+            System.out.println("Target lines (new text):");
+            for (String line : target.getLines()) {
+                System.out.println(line);
+            }
+        }
     }
 }

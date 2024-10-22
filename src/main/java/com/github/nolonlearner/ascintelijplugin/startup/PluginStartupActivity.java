@@ -8,5 +8,6 @@ public class PluginStartupActivity implements StartupActivity {
     @Override
     public void runActivity(@NotNull Project project) {
         new ListenerManager(project);  // 在项目启动时初始化监听器
+
     }
 }

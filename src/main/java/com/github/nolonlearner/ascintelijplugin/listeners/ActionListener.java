@@ -4,9 +4,9 @@ package com.github.nolonlearner.ascintelijplugin.listeners;
 import com.github.difflib.patch.Patch;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveManager;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
+import com.github.nolonlearner.ascintelijplugin.strategies.action.BlockEdit;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.LineCount;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.PrintReturn;
-import com.github.nolonlearner.ascintelijplugin.strategies.structure.SaveOnStructureChangeCondition;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.psi.PsiElement;
@@ -29,6 +29,7 @@ public class ActionListener extends DocListener implements PatchUpdateListener{
         // 注册关于用户动作的条件
         autoSaveManager.addCondition(new LineCount());// 如果写代码超过阈值行数
         autoSaveManager.addCondition(new PrintReturn());// 如果打印了return;
+        autoSaveManager.addCondition(new BlockEdit());// 如果打印了{}并编辑行数超过5行发生变化
         // 注册 Patch 更新回调
         setPatchUpdateListener(this); // 将自己作为 PatchUpdateListener 传递给 DocListener
     }
@@ -50,10 +51,17 @@ public class ActionListener extends DocListener implements PatchUpdateListener{
     public void onPatchUpdated(Patch<String> patch) {
         // 当 DocListener 更新 Patch 时，触发策略判断
         System.out.println("ActionListener 检测到 Patch 更新，开始评估条件。");
+
+        formatPrintPatch();
+
         // 创建上下文并评估条件
         Document document = getDocument();
         AutoSaveContext context = new AutoSaveContext(patch, document, psiElement);
         autoSaveManager.evaluateConditions(context); // 根据 Patch 和 psi 变化进行策略判断和保存操作
 
+    }
+
+    public void setPsiElement(PsiElement psiElement) {
+        this.psiElement = psiElement;
     }
 }
