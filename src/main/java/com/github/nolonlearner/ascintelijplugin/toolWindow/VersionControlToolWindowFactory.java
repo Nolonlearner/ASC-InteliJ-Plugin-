@@ -71,7 +71,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             new Task.Backgroundable(project, "加载历史记录") {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
-                    versionManager.addVersion_history(filePath);
+                    versionManager.addVersion_history(project,filePath);
                 }
             }.queue();
         }
@@ -176,11 +176,18 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         for (VirtualFile file : allFiles) {
             if (file != null && !file.isDirectory()) { // 检查文件是否是目录
                 try {
+                    // 在读取操作中获取 Document 对象
                     ApplicationManager.getApplication().runReadAction(() -> {
                         Document document = FileDocumentManager.getInstance().getDocument(file);
                         if (document != null) {
-                            ApplicationManager.getApplication().runWriteAction(() -> {
-                                saveCurrentVersion(file, versionId);
+                            // 在写操作中保存版本
+                            ApplicationManager.getApplication().invokeLater(() -> {
+                                try {
+                                    saveCurrentVersion(project,file, versionId);
+                                } catch (Exception e) {
+                                    System.out.println("保存文件版本时发生错误 (文件类型: " + file.getFileType().getName() + "): " + file.getPath());
+                                    e.printStackTrace();
+                                }
                             });
                         } else {
                             // 打印详细日志，显示无法获取 Document 的文件类型和路径
@@ -188,12 +195,10 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                         }
                     });
                 } catch (Exception e) {
-                    // 捕获保存文件版本的错误并记录详细信息
                     System.out.println("保存文件版本时发生错误 (文件类型: " + file.getFileType().getName() + "): " + file.getPath());
                     e.printStackTrace();
                 }
             } else {
-                // 忽略目录
                 System.out.println("忽略目录: " + (file != null ? file.getPath() : "null"));
             }
         }
@@ -203,6 +208,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             JOptionPane.showMessageDialog(null, "当前项目的所有文件版本已保存。", "保存成功", JOptionPane.INFORMATION_MESSAGE);
         });
     }
+
 
 
 
@@ -258,16 +264,16 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     public void cleanProjectHistory(Project project) {
         List<VirtualFile> allFiles = getAllProjectFiles(project);
         for (VirtualFile file : allFiles) {
-            cleanHistoryVersion(file);
+            cleanHistoryVersion(project,file);
         }
         JOptionPane.showMessageDialog(null, "项目的所有历史记录已清空。", "清空成功", JOptionPane.INFORMATION_MESSAGE);
         versionManager.resetVersionId();
     }
 
-    private void cleanHistoryVersion(VirtualFile currentFile) {
+    private void cleanHistoryVersion(Project project,VirtualFile currentFile) {
         if (currentFile != null) {
             String filePath = currentFile.getPath();
-            versionManager.clearVersionHistory(filePath);
+            versionManager.clearVersionHistory(project,filePath);
             //JOptionPane.showMessageDialog(null, "已清空历史版本", "成功", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(null, "未找到文件。", "错误", JOptionPane.ERROR_MESSAGE);
@@ -387,7 +393,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
             if (currentFile != null) {
                 String filePath = currentFile.getPath();
-                LinkedList<VersionRecord> versions = readVersionHistory(filePath);
+                LinkedList<VersionRecord> versions = readVersionHistory(project,filePath);
 
                 // 检查是否存在版本记录
                 if (versions == null || versions.isEmpty()) {
@@ -416,9 +422,10 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     }
 
     // 读取 JSON 格式的历史记录
-    private LinkedList<VersionRecord> readVersionHistory(String filePath) {
+    private LinkedList<VersionRecord> readVersionHistory(Project project,String filePath) {
         Gson gson = new Gson();
-        try (FileReader reader = new FileReader(filePath + ".history")) {
+        String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
+        try (FileReader reader = new FileReader(projectPath + "/history.txt")) {
             Type versionListType = new TypeToken<LinkedList<VersionRecord>>() {}.getType();
             return gson.fromJson(reader, versionListType);
         } catch (IOException e) {
@@ -428,7 +435,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     }
 
 
-    private void saveCurrentVersion(VirtualFile currentFile,String versionId) {
+    private void saveCurrentVersion(Project project,VirtualFile currentFile,String versionId) {
 
         if (currentFile != null) {
             // 获取当前编辑器的文档
@@ -442,7 +449,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                 List<String> currentLines = Arrays.asList(currentContent.split("\n"));
 
                 // 调用 VersionManager 的 saveVersion 方法
-                versionManager.saveVersion(filePath, currentLines,versionId);
+                versionManager.saveVersion(project,filePath, currentLines,versionId);
 
               //  JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
             } else {

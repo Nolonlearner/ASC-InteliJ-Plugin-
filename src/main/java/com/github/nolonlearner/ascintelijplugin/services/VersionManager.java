@@ -9,16 +9,14 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.intellij.openapi.project.Project;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,21 +33,33 @@ public class VersionManager {
 
 
     // 保存历史记录到文件系统，使用 JSON 格式，写入前先清空文件
-    private void saveVersionHistory(String filePath, List<VersionRecord> versions) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create(); // 使用 pretty-print 格式化输出
-        String jsonContent = gson.toJson(versions);
+    // 保存所有文件的历史记录到项目目录下的单个文件 "history.txt"
+    public void saveVersionHistory(Project project) {
+        String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
 
-        try (FileWriter writer = new FileWriter(filePath + ".history", false)) {
+        if (projectPath == null) {
+            System.out.println("无法获取项目路径");
+            return;
+        }
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().create(); // 使用 pretty-print 格式化输出
+        String historyFilePath = projectPath + "/history.txt";
+
+        try (FileWriter writer = new FileWriter(historyFilePath, false)) { // 每次保存时清空文件
+            // 将文件历史记录转换为 JSON
+            String jsonContent = gson.toJson(fileVersionHistory);
             writer.write(jsonContent);
-            System.out.println("历史记录已保存为 JSON 格式: " + filePath + ".history");
+            System.out.println("所有文件的历史记录已保存为 JSON 格式: " + historyFilePath);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+
     // 清空历史记录
-    public void clearVersionHistory(String filePath) {
-        File historyFile = new File(filePath + ".history");
+    public void clearVersionHistory(Project project,String filePath) {
+        String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
+        File historyFile = new File(projectPath + "/history.txt");
         if (historyFile.exists()) {
             try (FileOutputStream fos = new FileOutputStream(historyFile)) {
                 // 写入空内容，清空文件
@@ -70,8 +80,9 @@ public class VersionManager {
 
 
     // 从文件系统中加载历史记录
-    public void addVersion_history(String filePath) {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath + ".history"))) {
+    public void addVersion_history(Project project,String filePath) {
+        String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(projectPath + "/history.txt"))) {
             List<VersionRecord> versionHistory = (List<VersionRecord>) ois.readObject();
             if (versionHistory != null) {
                 for (VersionRecord version : versionHistory) {
@@ -117,7 +128,7 @@ public class VersionManager {
     }
 
     // 保存当前版本
-    public void saveVersion(String filePath, List<String> currentLines,String versionId) {
+    public void saveVersion(Project project,String filePath, List<String> currentLines,String versionId) {
         String timestamp = getCurrentTimestamp();  // 获取当前时间戳
 
         // 获取当前版本数量
@@ -155,8 +166,8 @@ public class VersionManager {
         // 保存变更记录
         saveChangeRecords(filePath, versionId, changes);
         // 更新文件系统中的历史记录存档
-        System.out.println("AAA: " + versionId);
-        saveVersionHistory(filePath, versions);
+
+        saveVersionHistory(project);
 
         // 删除上一版本的存档文件，根据当前版本的类型决定删除内容还是变更记录
         if(versionCount>1){
