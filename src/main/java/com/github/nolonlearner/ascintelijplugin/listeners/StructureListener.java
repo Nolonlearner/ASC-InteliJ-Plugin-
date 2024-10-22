@@ -32,6 +32,11 @@ public class StructureListener extends DocListener implements PsiTreeChangeListe
         System.out.println("PSI Tree changed: " + changeType);
         // 根据 event 获取更具体的信息
         PsiElement element = event.getElement();
+        if (element != null) {
+            System.out.println("当前event:"+ event);
+            System.out.println("当前element变化: " + element.getText());
+
+        }
        /* if (element instanceof PsiMethod || element instanceof PsiClass || element instanceof PsiField || element instanceof PsiImportStatementBase) {
             // 此处可以判断具体的结构类型并应用对应策略
             System.out.println("Detected structure change: " + element);

@@ -66,6 +66,14 @@ public class ListenerManager implements EditorFactoryListener {
             document.addDocumentListener(actionListener);
             listeners.add(actionListener);
 
+            TimeListener timeListener = new TimeListener(document, autoSaveManager);
+            document.addDocumentListener(timeListener);
+            listeners.add(timeListener);
+
+            StructureListener structureListener = new StructureListener(document, project, autoSaveManager);
+            document.addDocumentListener(structureListener);
+            listeners.add(structureListener);
+
             System.out.println("Registered listeners for file: " + currentFile.getPath());
         }
         System.out.println("编辑器创建，当前文件: " + currentFile.getPath());
@@ -135,6 +143,10 @@ public class ListenerManager implements EditorFactoryListener {
                 TimeListener timeListener = new TimeListener(document, autoSaveManager);
                 document.addDocumentListener(timeListener);
                 listeners.add(timeListener);
+
+                StructureListener structureListener = new StructureListener(document, project, autoSaveManager);
+                document.addDocumentListener(structureListener);
+                listeners.add(structureListener);
 
                 // No need to put it back, as we already initialized it above
                 System.out.println("test已恢复编辑器绑定，文件: " + file.getPath());

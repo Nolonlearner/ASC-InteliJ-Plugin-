@@ -41,7 +41,7 @@ public class LineCount implements AutoSaveCondition {
             if (type == DeltaType.INSERT) {
                 lineChange += target.size();  // 插入行数
             } else if (type == DeltaType.DELETE) {
-                lineChange -= source.size();  // 删除行数
+                lineChange += source.size();  // 删除行数
             } else if (type == DeltaType.CHANGE) {
                 // 如果是修改类型，行数没有变化，记录修改内容即可
                 System.out.println("行内容被修改！");
