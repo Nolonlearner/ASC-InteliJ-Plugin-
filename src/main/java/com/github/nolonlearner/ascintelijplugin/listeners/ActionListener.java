@@ -7,6 +7,7 @@ import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContex
 import com.github.nolonlearner.ascintelijplugin.strategies.action.BlockEdit;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.LineCount;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.PrintReturn;
+import com.github.nolonlearner.ascintelijplugin.strategies.action.printImport;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.psi.PsiElement;
@@ -30,6 +31,8 @@ public class ActionListener extends DocListener implements PatchUpdateListener{
         autoSaveManager.addCondition(new LineCount());// 如果写代码超过阈值行数
         autoSaveManager.addCondition(new PrintReturn());// 如果打印了return;
         autoSaveManager.addCondition(new BlockEdit());// 如果打印了{}并编辑行数超过5行发生变化
+        autoSaveManager.addCondition(new printImport());// 如果打印了import
+
         // 注册 Patch 更新回调
         setPatchUpdateListener(this); // 将自己作为 PatchUpdateListener 传递给 DocListener
     }

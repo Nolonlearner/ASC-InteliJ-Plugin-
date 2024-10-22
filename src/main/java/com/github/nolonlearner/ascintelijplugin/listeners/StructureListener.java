@@ -1,7 +1,16 @@
 package com.github.nolonlearner.ascintelijplugin.listeners;
 
+import com.github.difflib.patch.Patch;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
+import com.github.nolonlearner.ascintelijplugin.strategies.structure.*;
 import com.intellij.openapi.editor.Document;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.file.*;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.*;
+import com.intellij.psi.PsiTreeChangeEvent;
+import com.intellij.psi.PsiTreeChangeListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
@@ -25,106 +34,97 @@ public class StructureListener extends DocListener implements PsiTreeChangeListe
         this.project = project;
         this.autoSaveManager = autoSaveManager;
         PsiManager.getInstance(project).addPsiTreeChangeListener(this, project); // 注册监听器
-    }
 
+        autoSaveManager.addCondition(new FunctionsignatureChanged());// 函数签名的修改
+        autoSaveManager.addCondition(new AddFunctionorClass());// 新增函数、类
+        autoSaveManager.addCondition(new RemoveFunctionorClass());// 删除函数、类
+        autoSaveManager.addCondition(new RefactoringorMovingofCodeblocks());// 重构或移动代码块
+        autoSaveManager.addCondition(new AddNewMemberVariable());// 新增成员变量
+        autoSaveManager.addCondition(new DeleteMemberVariable());// 删除成员变量
+    }
     // 当代码结构发生变化时触发
     private void checkStructureChange(PsiTreeChangeEvent event, String changeType) {
-        System.out.println("PSI Tree changed: " + changeType);
         // 根据 event 获取更具体的信息
-        PsiElement element = event.getElement();
-        if (element != null) {
-            System.out.println("当前event:"+ event);
-            System.out.println("当前element变化: " + element.getText());
-
-        }
-       /* if (element instanceof PsiMethod || element instanceof PsiClass || element instanceof PsiField || element instanceof PsiImportStatementBase) {
-            // 此处可以判断具体的结构类型并应用对应策略
-            System.out.println("Detected structure change: " + element);
-            autoSaveManager.evaluateConditions(new AutoSaveContext(null, getDocument(), element)); // 触发保存
-        }*/
+        PsiElement psielement = event.getElement();
+        PsiElement oldChild = event.getOldChild();
+        PsiElement newChild = event.getNewChild();
+        PsiElement parent = event.getParent();
+        PsiElement child = event.getChild();
+        Patch<String> patch = getPatch();
+        Document document = getDocument();
+        AutoSaveContext context = new AutoSaveContext(patch, document, oldChild, newChild, parent, child, psiElement);
+        autoSaveManager.evaluateConditions(context);// 根据 Patch 和 psi 变化进行策略判断和保存操作
     }
 
-    // 子节点增加前的事件
-    @Override
-    public void beforeChildAddition(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点增加前的事件");
-        checkStructureChange(psiTreeChangeEvent, "beforeChildAddition");
-    }
 
     // 子节点移除前的事件
     @Override
     public void beforeChildRemoval(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点移除前的事件");
         checkStructureChange(psiTreeChangeEvent, "beforeChildRemoval");
     }
 
     // 子节点替换前的事件
     @Override
     public void beforeChildReplacement(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点替换前的事件");
         checkStructureChange(psiTreeChangeEvent, "beforeChildReplacement");
     }
 
     // 子节点移动前的事件
     @Override
     public void beforeChildMovement(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点移动前的事件");
         checkStructureChange(psiTreeChangeEvent, "beforeChildMovement");
     }
 
     // 子节点改变前的事件
     @Override
     public void beforeChildrenChange(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点改变前的事件");
         checkStructureChange(psiTreeChangeEvent, "beforeChildrenChange");
     }
 
     // 属性改变前的事件
     @Override
     public void beforePropertyChange(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("属性改变前的事件");
         checkStructureChange(psiTreeChangeEvent, "beforePropertyChange");
     }
 
     // 子节点增加后的事件
     @Override
     public void childAdded(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点增加后的事件");
         checkStructureChange(psiTreeChangeEvent, "childAdded");
     }
 
     // 子节点移除后的事件
     @Override
     public void childRemoved(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点移除后的事件");
         checkStructureChange(psiTreeChangeEvent, "childRemoved");
     }
 
     // 子节点替换后的事件
     @Override
     public void childReplaced(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点替换后的事件");
         checkStructureChange(psiTreeChangeEvent, "childReplaced");
     }
 
     // 子节点改变后的事件
     @Override
     public void childrenChanged(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点改变后的事件");
         checkStructureChange(psiTreeChangeEvent, "childrenChanged");
     }
 
     // 子节点移动后的事件
     @Override
     public void childMoved(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("子节点移动后的事件");
         checkStructureChange(psiTreeChangeEvent, "childMoved");
     }
 
     // 属性改变后的事件
     @Override
     public void propertyChanged(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
-        System.out.println("属性改变后的事件");
         checkStructureChange(psiTreeChangeEvent, "propertyChanged");
+    }
+
+    @Override
+    public void beforeChildAddition(@NotNull PsiTreeChangeEvent psiTreeChangeEvent) {
+        checkStructureChange(psiTreeChangeEvent, "beforeChildAddition");
     }
 }

@@ -1,3 +1,5 @@
+// build.gradle.kts
+//
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
@@ -33,13 +35,8 @@ repositories {
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     // 添加 java-diff-utils 依赖
-    //implementation("io.github.java-diff-utils:java-diff-utils:4.12")
-
-    // 添加 diff-match-patch 依赖
     implementation("com.github.java-diff-utils:java-diff-utils:master-SNAPSHOT");
-
     implementation ("javax.annotation:javax.annotation-api:1.3.2")
-
     testImplementation(libs.junit)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
@@ -60,6 +57,8 @@ dependencies {
 
     }
 }
+
+
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
@@ -156,3 +155,4 @@ intellijPlatformTesting {
         }
     }
 }
+
