@@ -48,9 +48,9 @@ public class LineCount implements AutoSaveCondition {
             }
         }
 
-        System.out.println("------------------------------");
+       /* System.out.println("------------------------------");
         System.out.println("Line change: " + Math.abs(lineChange));
-        System.out.println("------------------------------");
+        System.out.println("------------------------------");*/
         return Math.abs(lineChange) >= LINETHRESHOLD;
 
     }

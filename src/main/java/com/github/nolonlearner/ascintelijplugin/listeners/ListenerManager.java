@@ -87,17 +87,6 @@ public class ListenerManager implements EditorFactoryListener {
         VirtualFile currentFile = FileDocumentManager.getInstance().getFile(document);
         System.out.println("editorRemoved document: " + document);
         System.out.println("editorRemoved currentFile: " +currentFile);
-
-        /*if (currentFile != null) {
-            // 移除 DocumentListener
-            DocumentListener listener = documentListenerMap.remove(currentFile);
-
-            if (listener != null) {
-                document.removeDocumentListener(listener);
-            }
-            System.out.println("编辑器移除，当前文件: " + currentFile.getPath());
-        }*/
-
         if (currentFile != null) {
             // 移除监听器
             List<Object> testlistener = testlistenerMap.remove(currentFile); // 移除监听器

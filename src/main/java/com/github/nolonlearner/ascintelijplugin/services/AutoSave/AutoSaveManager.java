@@ -56,14 +56,16 @@ public class AutoSaveManager {
                     lastSavedContent = text; // 更新最后保存的内容
                     hitedCondition = condition; // 更新命中的条件
                     // 保存后退出循环
-                    versionControlToolWindowFactory.saveProjectVersion(this.project);
+                    //versionControlToolWindowFactory.saveProjectVersion(this.project);
                     break; // 一旦找到满足条件的策略，退出循环
                 }
             }
+            if (hitedCondition != null) {
+                System.out.println("！！！！！！！！！！本次命中的条件是：" + hitedCondition.getClass().getSimpleName());
+                System.out.println("-----------------------------------------------");
+                hitedCondition = null;
+            }
         }
-        if (hitedCondition != null) {
-            System.out.println("本次命中的条件是：" + hitedCondition.getClass().getSimpleName());
-            hitedCondition = null;
-        }
+
     }
 }

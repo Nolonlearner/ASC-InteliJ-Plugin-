@@ -24,7 +24,7 @@ public class TimeAutoSave implements AutoSaveCondition {
             System.out.println("达到时间间隔，触发自动保存");
             return true; // 返回 true 表示应该进行保存
         }
-        System.out.println("未达到时间间隔，不保存");
+        // System.out.println("未达到时间间隔，不保存");
         return false; // 未达到时间间隔，不保存
     }
 

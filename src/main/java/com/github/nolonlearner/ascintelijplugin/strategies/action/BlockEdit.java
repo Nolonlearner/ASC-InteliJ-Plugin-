@@ -57,7 +57,7 @@ public class BlockEdit implements AutoSaveCondition {
             }
         }
 
-        System.out.println("BlockEdited Lines edited: " + linesEdited);
+        // System.out.println("BlockEdited Lines edited: " + linesEdited);
         return false;
     }
 
