@@ -308,7 +308,9 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
+
     private void saveCurrentVersion(VirtualFile currentFile,String versionId) {
+
         if (currentFile != null) {
             // 获取当前编辑器的文档
             Document document = FileDocumentManager.getInstance().getDocument(currentFile);
