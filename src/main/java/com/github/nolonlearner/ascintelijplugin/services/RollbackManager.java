@@ -116,6 +116,7 @@ public class RollbackManager {
     }
 
 
+
     // 应用变更到文件中
     private void applyVersion(Project project, String filePath, VersionRecord versionRecord) {
         List<Change> changes = versionRecord.getChanges();

@@ -88,7 +88,7 @@ public class VersionManager {
         // 创建新的版本记录，包含变更和当前文件内容
         VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes, currentLines, isFullContent);
         addVersion(filePath, newVersion);  // 将新版本记录添加到历史记录中
-        
+
 
         // 保存完整内容
         saveFullContent(filePath, versionId, currentLines);
