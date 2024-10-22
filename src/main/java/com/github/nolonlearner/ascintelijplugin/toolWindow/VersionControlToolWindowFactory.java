@@ -5,6 +5,7 @@ import com.github.nolonlearner.ascintelijplugin.services.RollbackManager;
 import com.github.nolonlearner.ascintelijplugin.services.VersionManager;
 import com.github.nolonlearner.ascintelijplugin.services.VersionRecord;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -12,7 +13,7 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
-
+import com.intellij.psi.*;
 import javax.swing.*;
 import java.io.*;
 import java.nio.file.Files;
@@ -27,6 +28,9 @@ import com.intellij.openapi.fileEditor.FileDocumentManager; // 导入 FileDocume
 
 import java.util.logging.Level; // 导入日志记录所需的类
 import java.util.logging.Logger; // 导入 Logger 类
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.*;
+import com.intellij.openapi.project.Project;
 
 public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
@@ -55,16 +59,16 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         showHistoryButton.addActionListener(e -> showVersionHistory(project));
 
         JButton rollbackButton = new JButton("回滚到最新版本");
-        rollbackButton.addActionListener(e -> rollbackToSpecificVersion(project,true));
+        rollbackButton.addActionListener(e -> rollbackProjectToSpecificVersion(project,true));
 
         JButton rollbackToSpecificButton = new JButton("回滚到特定版本");
-        rollbackToSpecificButton.addActionListener(e -> rollbackToSpecificVersion(project));
+        rollbackToSpecificButton.addActionListener(e -> rollbackProjectToSpecificVersion(project));
 
         JButton saveVersionButton = new JButton("保存当前版本");
-        saveVersionButton.addActionListener(e -> saveCurrentVersion(project));
+        saveVersionButton.addActionListener(e -> saveProjectVersion(project));
 
         JButton cleanHistoryButton = new JButton("清空历史版本");
-        cleanHistoryButton.addActionListener(e -> cleanHistoryVersion(project));
+        cleanHistoryButton.addActionListener(e -> cleanProjectHistory(project));
 
 
         panel.add(rollbackToSpecificButton);
@@ -77,27 +81,118 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         toolWindow.getContentManager().addContent(ContentFactory.getInstance().createContent(panel, "", false));
     }
 
+    // 获取项目中的所有文件并排除.history和.save文件
+    private List<VirtualFile> getAllProjectFiles(Project project) {
+        List<VirtualFile> allFiles = new ArrayList<>();
+        ProjectFileIndex fileIndex = ProjectFileIndex.getInstance(project);
 
-    private void cleanHistoryVersion(Project project) {
-        VirtualFile currentFile = getCurrentFile(project);
+        fileIndex.iterateContent(virtualFile -> {
+            String fileName = virtualFile.getName();
+            // 排除.history和.save文件
+            if (!fileName.endsWith(".history") && !fileName.endsWith(".save")) {
+                allFiles.add(virtualFile);
+            }
+            return true; // 继续遍历
+        });
 
+        return allFiles;
+    }
+
+    // 保存整个项目的当前版本
+    public void saveProjectVersion(Project project) {
+        String versionId = versionManager.generateVersionId();
+        List<VirtualFile> allFiles = getAllProjectFiles(project);
+        for (VirtualFile file : allFiles) {
+            if (file != null) {
+                // 获取当前编辑器的文档
+                Document document = FileDocumentManager.getInstance().getDocument(file);
+                if (document != null) {
+                    saveCurrentVersion(file,versionId);
+                }
+            }
+        }
+        JOptionPane.showMessageDialog(null, "当前项目的所有文件版本已保存。", "保存成功", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    //回滚项目到特定版本接口
+    public void rollbackProjectToSpecificVersion(Project project) {
+        rollbackProjectToSpecificVersion(project, false);
+    }
+    // 回滚项目到特定版本或最新版本实现
+    public void rollbackProjectToSpecificVersion(Project project, boolean ToLatest) {
+        List<VirtualFile> allFiles = getAllProjectFiles(project);
+        if (ToLatest) {
+            for (VirtualFile file : allFiles) {
+                if (file != null) {
+                    try {
+                        String filePath = file.getPath();
+                        LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
+                        if (versions != null) {
+                            if (!versions.isEmpty()) {
+                                System.out.println("AAA");
+                                rollbackToSpecificVersion(file, project, true, "");
+                            }
+                            System.out.println("BBB");
+                        }
+                        System.out.println("CCC");
+                    } catch (Exception e) {
+                        System.err.println("Error processing file: " + file.getPath());
+                        e.printStackTrace();  // 输出异常堆栈
+                    }
+                    System.out.println("DDD");
+                }
+            }
+            System.out.println("EEE");
+            JOptionPane.showMessageDialog(null, "项目中的所有文件已回滚到最新版本。", "回滚成功", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            String versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
+            for (VirtualFile file : allFiles) {
+                if (file != null) {
+                    try {
+                        String filePath = file.getPath();
+                        LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
+                        if (versions != null) {
+                            if (!versions.isEmpty()) {
+                                System.out.println("AAA");
+                                rollbackToSpecificVersion(file, project, false, versionId);
+                            }
+                            System.out.println("BBB");
+                        }
+                        System.out.println("CCC");
+                    } catch (Exception e) {
+                        System.err.println("Error processing file: " + file.getPath());
+                        e.printStackTrace();  // 输出异常堆栈
+                    }
+                    System.out.println("DDD");
+                }
+            }
+            System.out.println("EEE");
+            JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+
+    // 清空整个项目的历史版本
+    public void cleanProjectHistory(Project project) {
+        List<VirtualFile> allFiles = getAllProjectFiles(project);
+        for (VirtualFile file : allFiles) {
+            cleanHistoryVersion(file);
+        }
+        JOptionPane.showMessageDialog(null, "项目的所有历史记录已清空。", "清空成功", JOptionPane.INFORMATION_MESSAGE);
+        versionManager.resetVersionId();
+    }
+
+    private void cleanHistoryVersion(VirtualFile currentFile) {
         if (currentFile != null) {
             String filePath = currentFile.getPath();
             versionManager.clearVersionHistory(filePath);
-
-            JOptionPane.showMessageDialog(null, "已清空历史版本", "成功", JOptionPane.INFORMATION_MESSAGE);
+            //JOptionPane.showMessageDialog(null, "已清空历史版本", "成功", JOptionPane.INFORMATION_MESSAGE);
         } else {
-            JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "未找到文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
-
     }
 
-    private void rollbackToSpecificVersion(Project project) {
-        rollbackToSpecificVersion(project,false);
-    }
-
-    private void rollbackToSpecificVersion(Project project,boolean ToLatest) {
-        VirtualFile currentFile = getCurrentFile(project);
+    private void rollbackToSpecificVersion(VirtualFile currentFile,Project project,boolean ToLatest,String versionId) {
         if (currentFile != null) {
             String filePath = currentFile.getPath();
             LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
@@ -108,7 +203,6 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                 return;
             }
 
-            String versionId;
             if(ToLatest) {
                 // 获取最新版本的ID
                 VersionRecord latestVersion;
@@ -120,9 +214,9 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                 }
                 versionId = latestVersion.getVersionId();
             }
-            else{
-                versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
-            }
+//            else{
+//                versionId = JOptionPane.showInputDialog("输入要回滚到的版本 ID:");
+//            }
             for (VersionRecord version : versions) {
                 if (version.getVersionId().equals(versionId)) {
                     VersionRecord previousVersion = findNearestFullContentVersion(versions, version);
@@ -134,7 +228,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                         rollbackManager.rollbackToVersion(project, filePath, versionId);
                     }
 
-                    JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
+                    //JOptionPane.showMessageDialog(null, "已回滚到版本 ID: " + versionId, "回滚成功", JOptionPane.INFORMATION_MESSAGE);
 
                     // 刷新编辑器中的文件内容
                     VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
@@ -150,7 +244,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             }
             JOptionPane.showMessageDialog(null, "未找到版本 ID: " + versionId, "错误", JOptionPane.ERROR_MESSAGE);
         } else {
-            JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "未找到文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -225,9 +319,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
-    private void saveCurrentVersion(Project project) {
-        VirtualFile currentFile = getCurrentFile(project);
-
+    private void saveCurrentVersion(VirtualFile currentFile,String versionId) {
         if (currentFile != null) {
             // 获取当前编辑器的文档
             Document document = FileDocumentManager.getInstance().getDocument(currentFile);
@@ -240,9 +332,9 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                 List<String> currentLines = Arrays.asList(currentContent.split("\n"));
 
                 // 调用 VersionManager 的 saveVersion 方法
-                versionManager.saveVersion(filePath, currentLines);
+                versionManager.saveVersion(filePath, currentLines,versionId);
 
-                JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
+              //  JOptionPane.showMessageDialog(null, "当前版本已保存", "保存成功", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(null, "未找到当前文档。", "错误", JOptionPane.ERROR_MESSAGE);
             }
