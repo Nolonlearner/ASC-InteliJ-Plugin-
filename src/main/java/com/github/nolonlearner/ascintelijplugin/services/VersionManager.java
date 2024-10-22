@@ -17,6 +17,12 @@ import java.util.stream.Collectors;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
 
 
 public class VersionManager {
@@ -28,11 +34,14 @@ public class VersionManager {
     }
 
 
-    // 保存历史记录到文件系统，写入前先清空文件
+    // 保存历史记录到文件系统，使用 JSON 格式，写入前先清空文件
     private void saveVersionHistory(String filePath, List<VersionRecord> versions) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath + ".history", false))) {
-            oos.writeObject(versions);
-            System.out.println("历史记录已保存: " + filePath + ".history");
+        Gson gson = new GsonBuilder().setPrettyPrinting().create(); // 使用 pretty-print 格式化输出
+        String jsonContent = gson.toJson(versions);
+
+        try (FileWriter writer = new FileWriter(filePath + ".history", false)) {
+            writer.write(jsonContent);
+            System.out.println("历史记录已保存为 JSON 格式: " + filePath + ".history");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -137,18 +146,16 @@ public class VersionManager {
         // 根据版本数量决定是否保存完整内容
         boolean isFullContent = (versionCount % 5 == 0);
 
-
         // 创建新的版本记录，包含变更和当前文件内容
         VersionRecord newVersion = new VersionRecord(versionId, timestamp, changes, currentLines, isFullContent);
         addVersion(filePath, newVersion);  // 将新版本记录添加到历史记录中
 
-
         // 保存完整内容
         saveFullContent(filePath, versionId, currentLines);
-
         // 保存变更记录
         saveChangeRecords(filePath, versionId, changes);
         // 更新文件系统中的历史记录存档
+        System.out.println("AAA: " + versionId);
         saveVersionHistory(filePath, versions);
 
         // 删除上一版本的存档文件，根据当前版本的类型决定删除内容还是变更记录
