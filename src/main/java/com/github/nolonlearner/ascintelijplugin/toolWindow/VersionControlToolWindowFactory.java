@@ -14,20 +14,17 @@ import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import com.intellij.openapi.editor.Document; // 导入 Document 类
 import com.intellij.openapi.fileEditor.FileDocumentManager; // 导入 FileDocumentManager 类
-import java.util.Arrays; // 导入 Arrays 类
+
 import java.util.logging.Level; // 导入日志记录所需的类
 import java.util.logging.Logger; // 导入 Logger 类
 
@@ -47,6 +44,13 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
+        //加载历史记录
+        VirtualFile currentFile = getCurrentFile(project);
+        if (currentFile != null) {
+            String filePath = currentFile.getPath();
+            versionManager.addVersion_history(filePath);
+        }
+
         JButton showHistoryButton = new JButton("查看版本历史");
         showHistoryButton.addActionListener(e -> showVersionHistory(project));
 
@@ -59,12 +63,33 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         JButton saveVersionButton = new JButton("保存当前版本");
         saveVersionButton.addActionListener(e -> saveCurrentVersion(project));
 
+        JButton cleanHistoryButton = new JButton("清空历史版本");
+        cleanHistoryButton.addActionListener(e -> cleanHistoryVersion(project));
+
+
         panel.add(rollbackToSpecificButton);
         panel.add(showHistoryButton);
         panel.add(rollbackButton);
         panel.add(saveVersionButton);
+        panel.add(cleanHistoryButton);
+
 
         toolWindow.getContentManager().addContent(ContentFactory.getInstance().createContent(panel, "", false));
+    }
+
+
+    private void cleanHistoryVersion(Project project) {
+        VirtualFile currentFile = getCurrentFile(project);
+
+        if (currentFile != null) {
+            String filePath = currentFile.getPath();
+            versionManager.clearVersionHistory(filePath);
+
+            JOptionPane.showMessageDialog(null, "已清空历史版本", "成功", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+
     }
 
     private void rollbackToSpecificVersion(Project project) {
@@ -77,10 +102,22 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             String filePath = currentFile.getPath();
             LinkedList<VersionRecord> versions = versionManager.getVersions(filePath);
 
+            if (versions == null || versions.isEmpty()) {
+                // 如果版本列表为空，显示错误信息
+                JOptionPane.showMessageDialog(null, "没有可用的历史记录。", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             String versionId;
             if(ToLatest) {
                 // 获取最新版本的ID
-                VersionRecord latestVersion = versions.getLast();
+                VersionRecord latestVersion;
+                try {
+                    latestVersion = versions.getLast();
+                } catch (NoSuchElementException e) {
+                    JOptionPane.showMessageDialog(null, "没有找到最新版本。", "错误", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 versionId = latestVersion.getVersionId();
             }
             else{
@@ -103,6 +140,8 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
                     VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
                     if (virtualFile != null) {
                         virtualFile.refresh(false, false);  // 强制刷新文件内容
+                        // 强制从磁盘重新加载，避免冲突提示
+                        FileDocumentManager.getInstance().reloadFromDisk((Document) virtualFile);
                         FileEditorManager.getInstance(project).openFile(virtualFile, true);  // 确保文件重新打开
                     }
 
@@ -166,8 +205,6 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
-
-
     private void showVersionHistory(Project project) {
         VirtualFile currentFile = getCurrentFile(project);
 
@@ -187,9 +224,6 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
             JOptionPane.showMessageDialog(null, "未找到当前编辑的文件。", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
-
-
-
 
     private void saveCurrentVersion(Project project) {
         VirtualFile currentFile = getCurrentFile(project);

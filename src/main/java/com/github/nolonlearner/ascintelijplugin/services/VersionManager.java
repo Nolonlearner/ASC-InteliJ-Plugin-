@@ -5,7 +5,7 @@ import com.github.difflib.patch.DeltaType;
 import com.github.difflib.patch.DiffException;
 import com.github.difflib.patch.Patch;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,6 +14,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 
 public class VersionManager {
@@ -22,6 +25,53 @@ public class VersionManager {
 
     public VersionManager() {
         fileVersionHistory = new HashMap<>();
+    }
+
+
+    // 保存历史记录到文件系统，写入前先清空文件
+    private void saveVersionHistory(String filePath, List<VersionRecord> versions) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath + ".history", false))) {
+            oos.writeObject(versions);
+            System.out.println("历史记录已保存: " + filePath + ".history");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 清空历史记录
+    public void clearVersionHistory(String filePath) {
+        File historyFile = new File(filePath + ".history");
+        if (historyFile.exists()) {
+            try (FileOutputStream fos = new FileOutputStream(historyFile)) {
+                // 写入空内容，清空文件
+                fos.write(new byte[0]);
+                System.out.println("历史记录已清空");
+            } catch (IOException e) {
+                System.err.println("无法清空历史记录: " + e.getMessage());
+            }
+        } else {
+            System.out.println("历史记录文件不存在");
+        }
+
+        // 清空内存中的记录fileVersionHistory
+        fileVersionHistory.clear();
+        System.out.println("fileVersionHistory 已清空");
+    }
+
+
+
+    // 从文件系统中加载历史记录
+    public void addVersion_history(String filePath) {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath + ".history"))) {
+            List<VersionRecord> versionHistory = (List<VersionRecord>) ois.readObject();
+            if (versionHistory != null) {
+                for (VersionRecord version : versionHistory) {
+                    addVersion(filePath, version);
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     // 添加版本记录
@@ -95,6 +145,8 @@ public class VersionManager {
 
         // 保存变更记录
         saveChangeRecords(filePath, versionId, changes);
+        // 更新文件系统中的历史记录存档
+        saveVersionHistory(filePath, versions);
 
         // 删除上一版本的存档文件，根据当前版本的类型决定删除内容还是变更记录
         if(versionCount>1){
