@@ -9,4 +9,7 @@ package com.github.nolonlearner.ascintelijplugin.services.AutoSave;
 public interface AutoSaveCondition {
     boolean shouldSave(AutoSaveContext context);// 判断是否需要保存
     AutoSavePriority getPriority(); // 返回条件的优先级
+
+    // 判断该条件是否与当前变化类型相关
+    boolean isRelevant(AutoSaveChangeType changeType);
 }

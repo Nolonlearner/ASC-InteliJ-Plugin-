@@ -4,6 +4,7 @@ import com.github.difflib.patch.AbstractDelta;
 import com.github.difflib.patch.Chunk;
 import com.github.difflib.patch.DeltaType;
 import com.github.difflib.patch.Patch;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
@@ -21,7 +22,7 @@ import java.util.List;
         getPriority: 返回优先级
  */
 public class LineCount implements AutoSaveCondition {
-    AutoSavePriority priority = AutoSavePriority.ACTION;
+    AutoSavePriority priority = AutoSavePriority.HIGH;
     private final int LINETHRESHOLD = 6;// 行数阈值
     @Override
     public boolean shouldSave(AutoSaveContext context) {
@@ -62,5 +63,10 @@ public class LineCount implements AutoSaveCondition {
 
     public int getLineThreshold() {
         return LINETHRESHOLD;
+    }
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.ACTION;
     }
 }

@@ -1,13 +1,14 @@
 package com.github.nolonlearner.ascintelijplugin.strategies.structure;
 
 import com.github.difflib.patch.Patch;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
 import com.intellij.psi.PsiElement;
 
 public class RefactoringorMovingofCodeblocks implements AutoSaveCondition {
-    AutoSavePriority priority = AutoSavePriority.STRUCTURE;
+    AutoSavePriority priority = AutoSavePriority.HIGHEST;
 
     @Override
     public boolean shouldSave(AutoSaveContext context) {
@@ -64,5 +65,11 @@ public class RefactoringorMovingofCodeblocks implements AutoSaveCondition {
             return (deltaStart <= startOffset && deltaEnd >= endOffset)
                     || (startOffset <= deltaStart && endOffset >= deltaEnd);
         });
+    }
+
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.STRUCTURE;
     }
 }

@@ -2,6 +2,7 @@ package com.github.nolonlearner.ascintelijplugin.listeners;
 // src/main/java/com/github/nolonlearner/ascintelijplugin/listeners/ActionListener.java
 
 import com.github.difflib.patch.Patch;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveManager;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.strategies.action.BlockEdit;
@@ -59,7 +60,7 @@ public class ActionListener extends DocListener implements PatchUpdateListener{
 
         // 创建上下文并评估条件
         Document document = getDocument();
-        AutoSaveContext context = new AutoSaveContext(patch, document, psiElement);
+        AutoSaveContext context = new AutoSaveContext(patch, document, psiElement, AutoSaveChangeType.ACTION);
         autoSaveManager.evaluateConditions(context); // 根据 Patch 和 psi 变化进行策略判断和保存操作
 
     }

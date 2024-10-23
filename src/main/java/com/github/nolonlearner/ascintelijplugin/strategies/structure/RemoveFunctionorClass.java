@@ -1,12 +1,13 @@
 package com.github.nolonlearner.ascintelijplugin.strategies.structure;
 
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
 import com.intellij.psi.PsiElement;
 
 public class RemoveFunctionorClass implements AutoSaveCondition {
-    AutoSavePriority priority = AutoSavePriority.STRUCTURE;
+    AutoSavePriority priority = AutoSavePriority.HIGH;
     @Override
     public boolean shouldSave(AutoSaveContext context) {
         PsiElement oldChild = context.getOldChild();
@@ -52,5 +53,11 @@ public class RemoveFunctionorClass implements AutoSaveCondition {
                 || element.getText().contains("long")
                 || element.getText().contains("short")
                 || element.getText().contains("byte");
+    }
+
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.STRUCTURE;
     }
 }

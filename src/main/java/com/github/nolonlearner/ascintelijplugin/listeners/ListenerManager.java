@@ -1,8 +1,6 @@
 package com.github.nolonlearner.ascintelijplugin.listeners;
 // src/main/java/com/github/nolonlearner/ascintelijplugin/listeners/ListenerManager.java
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveManager;
-import com.github.nolonlearner.ascintelijplugin.services.AutoSave.FileSave;
-import com.github.nolonlearner.ascintelijplugin.services.AutoSave.SaveDocumentCommand;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.DocumentListener;
@@ -59,8 +57,7 @@ public class ListenerManager implements EditorFactoryListener {
             List<Object> listeners = testlistenerMap.get(currentFile);
 
             // 创建并注册 ActionListener
-            SaveDocumentCommand saveDocumentCommand = new SaveDocumentCommand(new FileSave(project, "this is a test path"));
-            AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand, project);
+            AutoSaveManager autoSaveManager = new AutoSaveManager(project);
 
             ActionListener actionListener = new ActionListener(document, autoSaveManager);
             document.addDocumentListener(actionListener);
@@ -122,8 +119,7 @@ public class ListenerManager implements EditorFactoryListener {
                 List<Object> listeners = testlistenerMap.get(file);
 
                 // 创建并注册 ActionListener
-                SaveDocumentCommand saveDocumentCommand = new SaveDocumentCommand(new FileSave(project, "this is a test path"));
-                AutoSaveManager autoSaveManager = new AutoSaveManager(saveDocumentCommand, project);
+                AutoSaveManager autoSaveManager = new AutoSaveManager(project);
 
                 ActionListener actionListener = new ActionListener(document, autoSaveManager);
                 document.addDocumentListener(actionListener);

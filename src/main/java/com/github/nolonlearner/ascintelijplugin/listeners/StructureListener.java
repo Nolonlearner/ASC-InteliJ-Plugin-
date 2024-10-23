@@ -1,6 +1,7 @@
 package com.github.nolonlearner.ascintelijplugin.listeners;
 
 import com.github.difflib.patch.Patch;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.strategies.structure.*;
 import com.intellij.openapi.editor.Document;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 /*
     * StructureListener 负责监听代码结构的变化
@@ -51,7 +53,7 @@ public class StructureListener extends DocListener implements PsiTreeChangeListe
         timer = new Timer();// 定时器
     }
     // 当代码结构发生变化时触发
-    private void checkStructureChange(PsiTreeChangeEvent event, String changeType) {
+    private void checkStructureChange(PsiTreeChangeEvent event) {
         // 根据 event 获取更具体的信息
         PsiElement psielement = event.getElement();
         PsiElement oldChild = event.getOldChild();
@@ -60,7 +62,7 @@ public class StructureListener extends DocListener implements PsiTreeChangeListe
         PsiElement child = event.getChild();
         Patch<String> patch = getPatch();
         Document document = getDocument();
-        AutoSaveContext context = new AutoSaveContext(patch, document, oldChild, newChild, parent, child, psiElement);
+        AutoSaveContext context = new AutoSaveContext(patch, document, oldChild, newChild, parent, child, psiElement, AutoSaveChangeType.STRUCTURE);
         autoSaveManager.evaluateConditions(context);// 根据 Patch 和 psi 变化进行策略判断和保存操作
     }
 
@@ -89,15 +91,16 @@ public class StructureListener extends DocListener implements PsiTreeChangeListe
         // 处理收集到的变化
         Patch<String> patch = getPatch();
         Document document = getDocument();
-        AutoSaveContext context = new AutoSaveContext(patch, document, null, null, null, null, null);
         System.out.println("changes.size(): "+ changes.size());
         // 遍历变化并进行条件评估
-        /*for (PsiTreeChangeEvent change : changes) {
-            // 在这里可以根据变化类型进行处理，或直接传递给AutoSaveManager
-            checkStructureChange(change, "processChanges");
+        // 去重，基于变化类型或 PsiElement 判断是否有重复
+        List<PsiTreeChangeEvent> uniqueChanges = changes.stream()
+                .distinct() // 去重，或者用更复杂的比较逻辑
+                .collect(Collectors.toList());
 
-        }*/
-
+        for (PsiTreeChangeEvent change : uniqueChanges) {
+            checkStructureChange(change);
+        }
         // 清空变化列表
         changes.clear();
 

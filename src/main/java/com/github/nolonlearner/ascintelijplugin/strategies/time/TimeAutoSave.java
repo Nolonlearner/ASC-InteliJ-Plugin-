@@ -1,5 +1,6 @@
 package com.github.nolonlearner.ascintelijplugin.strategies.time;
 
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
@@ -11,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 public class TimeAutoSave implements AutoSaveCondition {
 
     private final long saveInterval = 1* 60 * 1000; // 1分钟的保存间隔
-    private final AutoSavePriority priority = AutoSavePriority.TIME;
+    private final AutoSavePriority priority = AutoSavePriority.LOWEST; // 优先级最低
     private long lastSaveTime = 0; // 上一次保存的时间戳
 
     @Override
@@ -31,5 +32,11 @@ public class TimeAutoSave implements AutoSaveCondition {
     @Override
     public AutoSavePriority getPriority() {
         return priority; // 返回基于时间的优先级
+    }
+
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.TIME; // 只有时间类型的变化才会触发
     }
 }

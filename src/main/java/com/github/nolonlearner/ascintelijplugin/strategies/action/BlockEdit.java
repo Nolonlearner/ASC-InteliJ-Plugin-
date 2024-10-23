@@ -4,6 +4,7 @@ import com.github.difflib.patch.AbstractDelta;
 import com.github.difflib.patch.Chunk;
 import com.github.difflib.patch.DeltaType;
 import com.github.difflib.patch.Patch;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
@@ -23,7 +24,7 @@ import java.util.List;
  */
 
 public class BlockEdit implements AutoSaveCondition {
-    private AutoSavePriority priority = AutoSavePriority.ACTION;
+    private AutoSavePriority priority = AutoSavePriority.MEDIUM;
     private int linesEdited = 0;
     private final int THRESHOLD = 5;
 
@@ -64,5 +65,11 @@ public class BlockEdit implements AutoSaveCondition {
     @Override
     public AutoSavePriority getPriority() {
         return priority;
+    }
+
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.ACTION;
     }
 }
