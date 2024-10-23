@@ -2,26 +2,27 @@ package com.github.nolonlearner.ascintelijplugin.services;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.patch.AbstractDelta;
 import com.github.difflib.patch.DeltaType;
-import com.github.difflib.patch.DiffException;
 import com.github.difflib.patch.Patch;
-
-import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
 import java.util.stream.Collectors;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.project.Project;
-
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
-
+import com.google.gson.reflect.TypeToken;
+import java.io.FileReader;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 public class VersionManager {
     private final HashMap<String, LinkedList<VersionRecord>> fileVersionHistory;
@@ -30,7 +31,6 @@ public class VersionManager {
     public VersionManager() {
         fileVersionHistory = new HashMap<>();
     }
-
 
     // 保存历史记录到文件系统，使用 JSON 格式，写入前先清空文件
     // 保存所有文件的历史记录到项目目录下的单个文件 "history.txt"
@@ -41,23 +41,96 @@ public class VersionManager {
             System.out.println("无法获取项目路径");
             return;
         }
+        System.out.println("项目路径: " + projectPath);
+
+        if (fileVersionHistory == null || fileVersionHistory.isEmpty()) {
+            System.out.println("没有历史记录可保存。");
+            return;
+        }
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create(); // 使用 pretty-print 格式化输出
         String historyFilePath = projectPath + "/history.txt";
 
+        // 读取已有的历史记录
+        HashMap<String, LinkedList<VersionRecord>> existingRecords = readVersionHistory(project);
+
+// 如果文件不存在或没有历史记录，初始化一个新的 HashMap
+        if (existingRecords == null) {
+            existingRecords = new HashMap<>();
+        }
+
+// 将新的历史记录追加到已有记录中
+        for (Map.Entry<String, LinkedList<VersionRecord>> entry : fileVersionHistory.entrySet()) {
+            String fileKey = entry.getKey();
+            LinkedList<VersionRecord> newVersions = entry.getValue();
+
+            // 获取现有版本列表，若不存在则初始化
+            LinkedList<VersionRecord> existingVersions = existingRecords.getOrDefault(fileKey, new LinkedList<>());
+
+            // 检查并追加新版本记录
+            for (VersionRecord newVersion : newVersions) {
+                boolean exists = existingVersions.stream()
+                        .anyMatch(existingVersion -> existingVersion.getVersionId().equals(newVersion.getVersionId()));
+
+                // 仅在不存在时添加
+                if (!exists) {
+                    existingVersions.add(newVersion);
+                }
+            }
+
+            existingRecords.put(fileKey, existingVersions); // 更新 HashMap
+        }
+
+        // 将更新后的 HashMap 写入文件
         try (FileWriter writer = new FileWriter(historyFilePath, false)) { // 每次保存时清空文件
-            // 将文件历史记录转换为 JSON
-            String jsonContent = gson.toJson(fileVersionHistory);
+            String jsonContent = gson.toJson(existingRecords);
             writer.write(jsonContent);
             System.out.println("所有文件的历史记录已保存为 JSON 格式: " + historyFilePath);
         } catch (IOException e) {
+            System.out.println("保存历史记录时发生错误。");
             e.printStackTrace();
+            return; // 若出现异常则不继续后面的检查
+        }
+
+        // 检查文件是否成功创建
+        File historyFile = new File(historyFilePath);
+        if (historyFile.exists()) {
+            System.out.println("文件创建成功: " + historyFilePath);
+
+            // 检查文件内容是否写入成功
+            try {
+                String content = new String(Files.readAllBytes(Paths.get(historyFilePath)));
+                if (content.isEmpty()) {
+                    System.out.println("警告：文件内容为空！");
+                } else {
+                    System.out.println("文件内容已成功写入。");
+                }
+            } catch (IOException e) {
+                System.out.println("读取文件内容时发生错误。");
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("文件未成功创建: " + historyFilePath);
+        }
+    }
+
+    // 读取历史记录的逻辑
+    public static HashMap<String, LinkedList<VersionRecord>> readVersionHistory(Project project) {
+        Gson gson = new Gson();
+        String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
+        try (FileReader reader = new FileReader(projectPath + "/history.txt")) {
+            // 读取为 HashMap<String, LinkedList<VersionRecord>>
+            Type fileHistoriesType = new TypeToken<HashMap<String, LinkedList<VersionRecord>>>() {}.getType();
+            return gson.fromJson(reader, fileHistoriesType);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
 
     // 清空历史记录
-    public void clearVersionHistory(Project project,String filePath) {
+    public void clearVersionHistory(Project project) {
         String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
         File historyFile = new File(projectPath + "/history.txt");
         if (historyFile.exists()) {
@@ -77,20 +150,26 @@ public class VersionManager {
         System.out.println("fileVersionHistory 已清空");
     }
 
-
-
     // 从文件系统中加载历史记录
-    public void addVersion_history(Project project,String filePath) {
+    public void addVersion_history(Project project, String filePath) {
         String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(projectPath + "/history.txt"))) {
-            List<VersionRecord> versionHistory = (List<VersionRecord>) ois.readObject();
-            if (versionHistory != null) {
+        Gson gson = new Gson();
+
+        try (FileReader reader = new FileReader(projectPath + "/history.txt")) {
+            // 读取为 HashMap<String, LinkedList<VersionRecord>>
+            Type fileHistoriesType = new TypeToken<HashMap<String, LinkedList<VersionRecord>>>() {}.getType();
+            HashMap<String, LinkedList<VersionRecord>> fileHistories = gson.fromJson(reader, fileHistoriesType);
+
+            if (fileHistories != null && fileHistories.containsKey(filePath)) {
+                LinkedList<VersionRecord> versionHistory = fileHistories.get(filePath);
                 for (VersionRecord version : versionHistory) {
                     addVersion(filePath, version);
                 }
             }
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("读取历史记录时发生 IO 异常: " + e.getMessage());
+        } catch (JsonSyntaxException e) {
+            System.err.println("读取历史记录时发生 JSON 解析异常: " + e.getMessage());
         }
     }
 
@@ -104,12 +183,6 @@ public class VersionManager {
     // 获取指定文件的所有版本记录
     public LinkedList<VersionRecord> getVersions(String filePath) {
         return fileVersionHistory.getOrDefault(filePath, new LinkedList<>());
-    }
-
-    // 获取最新版本
-    public VersionRecord getLatestVersion(String filePath) {
-        LinkedList<VersionRecord> versions = getVersions(filePath);
-        return versions.isEmpty() ? null : versions.getLast(); // 获取最后一个版本
     }
 
     // 生成递增的版本ID，格式化为8位数字
@@ -130,20 +203,19 @@ public class VersionManager {
     // 保存当前版本
     public void saveVersion(Project project,String filePath, List<String> currentLines,String versionId) {
         String timestamp = getCurrentTimestamp();  // 获取当前时间戳
-
         // 获取当前版本数量
         LinkedList<VersionRecord> versions = getVersions(filePath);
         int versionCount = versions.size();
-
         // 如果是第一次保存，直接保存完整内容
         if (versionCount == 0) {
             VersionRecord newVersion = new VersionRecord(versionId, timestamp, new ArrayList<>(), currentLines, true);
             addVersion(filePath, newVersion);
             saveFullContent(filePath, versionId, currentLines);  // 保存完整文件
             System.out.println("初始化版本已保存 (完整内容): " + versionId);
+            // 更新文件系统中的历史记录存档
+            saveVersionHistory(project);
             return;
         }
-
         // 获取上一版本的 versionId
         VersionRecord previousVersion = versions.get(versionCount - 1);
         String previousVersionId = previousVersion.getVersionId();
@@ -166,7 +238,6 @@ public class VersionManager {
         // 保存变更记录
         saveChangeRecords(filePath, versionId, changes);
         // 更新文件系统中的历史记录存档
-
         saveVersionHistory(project);
 
         // 删除上一版本的存档文件，根据当前版本的类型决定删除内容还是变更记录

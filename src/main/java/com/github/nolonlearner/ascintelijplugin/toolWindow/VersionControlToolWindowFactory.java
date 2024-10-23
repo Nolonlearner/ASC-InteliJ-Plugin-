@@ -1,5 +1,4 @@
 package com.github.nolonlearner.ascintelijplugin.toolWindow;
-
 import com.github.nolonlearner.ascintelijplugin.services.Change;
 import com.github.nolonlearner.ascintelijplugin.services.RollbackManager;
 import com.github.nolonlearner.ascintelijplugin.services.VersionManager;
@@ -15,35 +14,17 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
-import com.intellij.psi.*;
 import javax.swing.*;
-import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
-
-import com.intellij.openapi.editor.Document; // 导入 Document 类
-import com.intellij.openapi.fileEditor.FileDocumentManager; // 导入 FileDocumentManager 类
-
-import java.util.logging.Level; // 导入日志记录所需的类
-import java.util.logging.Logger; // 导入 Logger 类
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.*;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.editor.Document;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import javax.swing.*;
-import java.io.FileReader;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import com.intellij.openapi.application.ApplicationManager;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -59,7 +40,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
     }
 
     @Override
-    public void createToolWindowContent(@NotNull Project project, ToolWindow toolWindow) {
+    public void createToolWindowContent(@NotNull Project project,@NotNull ToolWindow toolWindow) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
@@ -272,8 +253,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
     private void cleanHistoryVersion(Project project,VirtualFile currentFile) {
         if (currentFile != null) {
-            String filePath = currentFile.getPath();
-            versionManager.clearVersionHistory(project,filePath);
+            versionManager.clearVersionHistory(project);
             //JOptionPane.showMessageDialog(null, "已清空历史版本", "成功", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(null, "未找到文件。", "错误", JOptionPane.ERROR_MESSAGE);
@@ -316,13 +296,17 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
                     // 获取回滚后的文件内容
                     VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
-                    String newContent = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
+                    if (virtualFile != null) {
+                        String newContent = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
 
-                    // 如果文件内容发生了变化，才刷新和重新打开
-                    if (!originalContent.equals(newContent)) {
-                        virtualFile.refresh(false, false);
-                        FileDocumentManager.getInstance().reloadFromDisk((Document) virtualFile);
-                        FileEditorManager.getInstance(project).openFile(virtualFile, true);
+                        // 如果文件内容发生了变化，才刷新和重新打开
+                        if (!originalContent.equals(newContent)) {
+                            virtualFile.refresh(false, false);
+                            FileDocumentManager.getInstance().reloadFromDisk((Document) virtualFile);
+                            FileEditorManager.getInstance(project).openFile(virtualFile, true);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(null, "未能找到文件: " + filePath, "错误", JOptionPane.ERROR_MESSAGE);
                     }
 
                     return;
@@ -386,6 +370,9 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
+
+
+    // 显示版本历史
     private void showVersionHistory(Project project) {
         try {
             // 获取当前正在编辑的文件
@@ -393,13 +380,15 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
 
             if (currentFile != null) {
                 String filePath = currentFile.getPath();
-                LinkedList<VersionRecord> versions = readVersionHistory(project,filePath);
+                HashMap<String, LinkedList<VersionRecord>> allVersions = VersionManager.readVersionHistory(project);
 
                 // 检查是否存在版本记录
-                if (versions == null || versions.isEmpty()) {
+                if (allVersions == null || !allVersions.containsKey(filePath) || allVersions.get(filePath).isEmpty()) {
                     JOptionPane.showMessageDialog(null, "没有找到历史记录。", "版本历史", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
+
+                LinkedList<VersionRecord> versions = allVersions.get(filePath);
 
                 // 构建版本历史的显示内容
                 StringBuilder history = new StringBuilder();
@@ -421,18 +410,7 @@ public class VersionControlToolWindowFactory implements ToolWindowFactory {
         }
     }
 
-    // 读取 JSON 格式的历史记录
-    private LinkedList<VersionRecord> readVersionHistory(Project project,String filePath) {
-        Gson gson = new Gson();
-        String projectPath = project.getBasePath(); // 从 Project 对象获取项目路径
-        try (FileReader reader = new FileReader(projectPath + "/history.txt")) {
-            Type versionListType = new TypeToken<LinkedList<VersionRecord>>() {}.getType();
-            return gson.fromJson(reader, versionListType);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
+
 
 
     private void saveCurrentVersion(Project project,VirtualFile currentFile,String versionId) {
