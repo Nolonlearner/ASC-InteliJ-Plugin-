@@ -45,22 +45,4 @@ public class VersionRecord {
         return isFullContent;
     }
 
-    // 将变更记录转换为可读的行形式，主要用于保存变更时输出
-    public List<String> getChangesAsLines() {
-        List<String> modifiedLines = new ArrayList<>();
-        for (Change change : changes) {
-            switch (change.getChangeType()) {
-                case "ADD":
-                    modifiedLines.add("ADD: " + change.getContent());  // 新增的行
-                    break;
-                case "DELETE":
-                    modifiedLines.add("DELETE: " + change.getContent());  // 被删除的行
-                    break;
-                case "MODIFY":
-                    modifiedLines.add("MODIFY: " + change.getContent());  // 被修改的行
-                    break;
-            }
-        }
-        return modifiedLines;
-    }
 }
