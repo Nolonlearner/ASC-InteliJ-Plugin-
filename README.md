@@ -1,103 +1,95 @@
-# ASC-InteliJ-Plugin-
+# Java课程项目：实现一个自动保存代码版本的IDEA插件
+## 1. 项目简介
+  本项目是一个为 IntelliJ IDEA 开发的自动保存代码版本的插件，旨在解决手动保存代码无法自动记录历史版本的问题。通过该插件，开发者可以在不依赖手动操作的情况下，自动保存代码的历史版本，并根据代码编辑情况，智能触发保存行为。用户可以通过该插件查看每个保存点的历史记录，并支持将代码回滚至任何一个历史版本。
 
-![Build](https://github.com/Nolonlearner/ASC-InteliJ-Plugin-/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
+  该插件特别适用于开发过程中频繁修改代码的场景，能够有效帮助开发者减少因误操作或失误带来的代码丢失风险，并优化版本管理过程
 
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Get familiar with the [template documentation][template].
-- [ ] Adjust the [pluginGroup](./gradle.properties) and [pluginName](./gradle.properties), as well as the [id](./src/main/resources/META-INF/plugin.xml) and [sources package](./src/main/kotlin).
-- [ ] Adjust the plugin description in `README` (see [Tips][docs:plugin-description])
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html?from=IJPluginTemplate).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the `MARKETPLACE_ID` in the above README badges. You can obtain it once the plugin is published to JetBrains Marketplace.
-- [ ] Set the [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html?from=IJPluginTemplate) related [secrets](https://github.com/JetBrains/intellij-platform-plugin-template#environment-variables).
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html?from=IJPluginTemplate).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
+## 2. 项目功能
+- 基于三种策略保存代码版本：
+  - Structure（结构变化保存策略）：当代码结构发生重要变化（如函数签名修改、类新增、成员变量变动等）时自动保存。
+  - Action（用户行为保存策略）：基于代码编辑操作触发的保存策略，如行数增加、关键字输入（如return;）或文件切换时。
+  - Time（定时保存策略）：按照时间间隔触发的定期保存。 
+  - 自动保存代码版本：根据不同的触发条件（结构、行为或时间）自动保存代码的当前版本。
+  - 查看代码历史版本：提供一个界面查看所有历史版本，并详细展示每次保存的代码差异（diff）。
+  - 恢复代码历史版本：支持从历史版本中回滚到指定的某个版本。
+  - 删除代码历史版本：用户可以手动选择删除不再需要的历史版本，节省存储空间。
+## 3. 项目结构
+  - listeners：监听器模块，负责捕捉代码变动、用户操作和时间变化，并根据捕捉到的变化信息触发相应的保存操作。
+    - ActionListener：监听用户的代码编辑操作，决定是否触发基于行为的保存策略。
+    - DocListener & DocVirtualListener：文档和虚拟文件的监听器，负责捕获文档内容的变化。
+    - StructureListener：监听代码结构变化，如函数或类的增删，代码块的重构等。
+    - TimeListener：定时监听器，按照固定时间间隔触发保存操作。
+    - PatchUpdateListener：用于监测和管理代码差异（patch），帮助构建增量保存记录。
+  - services：服务层，处理保存管理、版本记录、Git提交等核心逻辑。
+    - AutoSaveManager：管理自动保存策略的核心模块，负责根据不同的条件触发保存行为。
+    - VersionManager：管理历史版本的记录与存储。
+    - GitManager：处理与 Git 相关的操作，如分支管理与提交。
+    - RollbackManager：提供代码回滚功能，帮助用户恢复到之前的代码版本。
+    - UIManager：负责用户界面（如工具窗口）的管理，支持查看和操作版本历史。
+    - VersionRecord：历史版本记录的具体实现类。
+  - startup：插件启动时的初始化逻辑。
+    - PluginStartupActivity：负责插件启动时的必要初始化工作，如监听器的注册和策略的配置。
+  - strategies：策略模块，根据不同的触发条件定义多种自动保存策略。
+    - action（用户行为策略）：
+      - BlockEdit：监控代码块的编辑行为。
+      - LineCount：根据代码行数的变化触发保存。
+      - PrintReturn：检测到return;等关键字输入时触发保存。
+      - printImport：监测代码中import语句的修改并保存。
+    - structure（代码结构策略）：
+      - AddFunctionOrClass：当检测到新增函数或类时触发保存。
+      - AddNewMemberVariable：新增类成员变量时的保存策略。
+      - DeleteMemberVariable：删除类成员变量时的保存策略。
+      - FunctionsignatureChanged：当函数签名被修改时触发保存。
+      - RefactoringOrMovingOfCodeblocks：代码块重构或移动时触发保存。
+      - RemoveFunctionOrClass：当删除函数或类时触发保存。
+    - time（定时策略）：
+      - TimeAutoSave：基于固定时间间隔自动触发的保存策略。
+  - toolWindow：提供查看和管理历史版本的工具窗口，支持版本回滚和删除操作。
 
-<!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+目录结构如下：
+```
+listeners/
+    ActionListener.java
+    DocListener.java
+    DocVirtualListener.java
+    PatchUpdateListener.java
+    StructureListener.java
+    TimeListener.java
+services/
+    AutoSaveManager.java
+    GitManager.java
+    RollbackManager.java
+    UIManager.java
+    VersionManager.java
+    VersionRecord.java
+startup/
+    PluginStartupActivity.java
+strategies/
+    action/
+        BlockEdit.java
+        LineCount.java
+        printImport.java
+        PrintReturn.java
+    structure/
+        AddFunctionOrClass.java
+        AddNewMemberVariable.java
+        DeleteMemberVariable.java
+        FunctionsignatureChanged.java
+        RefactoringOrMovingOfCodeblocks.java
+        RemoveFunctionOrClass.java
+    time/
+        TimeAutoSave.java
+toolWindow/
+    - 历史版本展示与管理的界面相关代码
+```
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
 
-To keep everything working, do not remove `<!-- ... -->` sections. 
-<!-- Plugin description end -->
-
-## Installation
-
-- Using the IDE built-in plugin system:
-  
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "ASC-InteliJ-Plugin-"</kbd> >
-  <kbd>Install</kbd>
-  
-- Using JetBrains Marketplace:
-
-  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
-
-  You can also download the [latest release](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID/versions) from JetBrains Marketplace and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
-
-- Manually:
-
-  Download the [latest release](https://github.com/Nolonlearner/ASC-InteliJ-Plugin-/releases/latest) and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
-
-
----
-Plugin based on the [IntelliJ Platform Plugin Template][template].
-
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
-[docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
-
-
-# Listeners 文件夹说明
-
-此文件夹包含 IntelliJ IDEA 插件中的监听器类，负责监控文档和文件的变化。以下是各个类的简要介绍。
-
-## 1. DocListener
-
-- **路径**: `com.github.nolonlearner.ascintelijplugin.listeners.DocListener`
-- **功能**: 监控文档内容的变化。
-- **主要方法**:
-  - `beforeDocumentChange(DocumentEvent event)`: 记录旧文本。
-  - `documentChanged(DocumentEvent event)`: 记录新文本并打印变化信息。
-
-## 2. DocVirtualListener
-
-- **路径**: `com.github.nolonlearner.ascintelijplugin.listeners.DocVirtualListener`
-- **功能**: 监控虚拟文件的变化。
-- **主要方法**:
-  - `fileCreated(VirtualFileEvent event)`: 处理文件创建。
-  - `fileDeleted(VirtualFileEvent event)`: 处理文件删除。
-  - `contentsChanged(VirtualFileEvent event)`: 处理文件内容改变。
-
-## 3. ListenerManager
-
-- **路径**: `com.github.nolonlearner.ascintelijplugin.listeners.ListenerManager`
-- **功能**: 管理文档和虚拟文件的监听器。
-- **主要方法**:
-  - `editorCreated(EditorFactoryEvent event)`: 注册 `DocListener`。
-  - `editorReleased(EditorFactoryEvent event)`: 移除 `DocListener`。
-  - `bindToAlreadyOpenedEditors()`: 绑定已打开的编辑器。
-
-## 4. 概念解释
-
-- **Document**: 文本文件内容的表示，支持修改和撤销。
-- **VirtualFile**: 对文件系统的抽象表示。
-- **FileDocumentManager**: 管理 `Document` 和 `VirtualFile` 的关系。
-- **DocumentListener**: 监听文档内容变化的接口。
-- **VirtualFileListener**: 监听虚拟文件变化的接口。
-
-## 5. 使用说明
-
-在项目启动时创建 `ListenerManager` 实例来初始化和注册所有监听器。
-
-```java
-public class MyStartupActivity implements StartupActivity {
-    @Override
-    public void runActivity(@NotNull Project project) {
-        new ListenerManager(project);  // 初始化监听器
-    }
-}
-
+## 4.设计与实现细节
+该插件基于监听器模式和策略模式实现。不同的监听器捕捉代码编辑过程中的特定事件，而这些事件通过预定义的策略进行分类处理，决定是否触发自动保存行为。以下是几个关键设计策略：
+- 监听器模式：listeners 模块中的不同监听器通过监听代码编辑、文档变化、结构调整等事件，提供触发保存的依据。
+- 策略模式：strategies 模块定义了不同的自动保存策略，包括用户行为策略、结构变化策略和定时策略。各个策略根据不同的事件触发保存，提升了自动保存的灵活性和扩展性。
+- 增量保存与Diff算法：采用java-diff-utils，通过生成差异日志（patch）来记录每次保存的增量，减少保存空间占用并提高版本管理的效率。
+## 5. 成员分工
+- 何如麟：负责项目的整体架构设计，Diff算法和自动保存策略代码和的编写，项目的测试。
+- 臧峻哲：负责实现代码历史版本的查看和恢复功能，以及工具窗口页面的展示。
+- 周瑾瑜：负责编写文档。
