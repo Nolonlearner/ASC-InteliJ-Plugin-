@@ -3,6 +3,7 @@ package com.github.nolonlearner.ascintelijplugin.services.AutoSave;
 import com.github.difflib.patch.Patch;
 import com.intellij.openapi.editor.Document;
 import com.intellij.psi.PsiElement;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 
 import javax.print.Doc;
 
@@ -22,8 +23,12 @@ public class AutoSaveContext {
     private final PsiElement parent;
     private final PsiElement child;
 
+    // 新增字段，表示这次变化的类型
+    private final AutoSaveChangeType changeType;
 
-    public AutoSaveContext(Document document) {
+
+
+    public AutoSaveContext(Document document,AutoSaveChangeType changeType) {
         this.patch = null;
         this.document = document;
         this.psiElement = null;
@@ -31,11 +36,12 @@ public class AutoSaveContext {
         this.newChild = null;
         this.parent = null;
         this.child = null;
+        this.changeType = changeType;
     }
 
 
     // 构造函数
-    public AutoSaveContext(Patch<String> patch, Document document, PsiElement psiElement) {
+    public AutoSaveContext(Patch<String> patch, Document document, PsiElement psiElement, AutoSaveChangeType changeType) {
         this.patch = patch;
         this.psiElement = psiElement;
         this.document = document;
@@ -43,10 +49,11 @@ public class AutoSaveContext {
         this.newChild = null;
         this.parent = null;
         this.child = null;
+        this.changeType = changeType;
     }
 
     // 构造函数
-    public AutoSaveContext(Patch<String> patch, Document document, PsiElement oldChild, PsiElement newChild, PsiElement parent, PsiElement child, PsiElement psiElemen) {
+    public AutoSaveContext(Patch<String> patch, Document document, PsiElement oldChild, PsiElement newChild, PsiElement parent, PsiElement child, PsiElement psiElemen, AutoSaveChangeType changeType) {
         this.patch = patch;
         this.document = document;
         this.oldChild = oldChild;
@@ -54,6 +61,7 @@ public class AutoSaveContext {
         this.parent = parent;
         this.child = child;
         this.psiElement = psiElemen;
+        this.changeType = changeType;
     }
 
 
@@ -83,5 +91,9 @@ public class AutoSaveContext {
 
     public PsiElement getChild() {
         return child;
+    }
+
+    public AutoSaveChangeType getChangeType() {
+        return changeType;
     }
 }

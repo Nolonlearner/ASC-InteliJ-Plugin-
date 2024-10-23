@@ -1,5 +1,6 @@
 package com.github.nolonlearner.ascintelijplugin.listeners;
 
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveManager;
 import com.github.nolonlearner.ascintelijplugin.strategies.time.TimeAutoSave;
@@ -42,7 +43,7 @@ public class TimeListener extends DocListener {
     private void startScheduledTask() {
         scheduler.scheduleAtFixedRate(() -> {
             Document document = getDocument();
-            AutoSaveContext context = new AutoSaveContext(document);
+            AutoSaveContext context = new AutoSaveContext(document, AutoSaveChangeType.TIME);
             // 在每个固定时间间隔检查是否需要保存
             System.out.println("TimeListener 触发定时保存逻辑");
             autoSaveManager.evaluateConditions(context);

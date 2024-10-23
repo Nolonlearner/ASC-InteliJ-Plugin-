@@ -4,6 +4,7 @@ import com.github.difflib.patch.AbstractDelta;
 import com.github.difflib.patch.Chunk;
 import com.github.difflib.patch.DeltaType;
 import com.github.difflib.patch.Patch;
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
@@ -23,7 +24,7 @@ import java.util.List;
  */
 
 public class PrintReturn implements AutoSaveCondition {
-    AutoSavePriority priority = AutoSavePriority.ACTION;
+    AutoSavePriority priority = AutoSavePriority.MEDIUM;
     @Override
     public boolean shouldSave(AutoSaveContext context) {
         // 判断是否打印了return;
@@ -46,5 +47,10 @@ public class PrintReturn implements AutoSaveCondition {
     @Override
     public AutoSavePriority getPriority() {
         return priority; // 返回优先级
+    }
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.ACTION;
     }
 }

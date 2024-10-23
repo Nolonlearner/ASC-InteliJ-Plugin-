@@ -1,5 +1,6 @@
 package com.github.nolonlearner.ascintelijplugin.strategies.structure;
 
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
@@ -10,7 +11,7 @@ import com.intellij.psi.PsiElement;
     * 用于判断是否需要自动保存
  */
 public class AddFunctionorClass implements AutoSaveCondition {
-    AutoSavePriority priority = AutoSavePriority.STRUCTURE;
+    AutoSavePriority priority = AutoSavePriority.HIGHEST;
     @Override
     public boolean shouldSave(AutoSaveContext context) {
         PsiElement newChild = context.getNewChild();
@@ -55,5 +56,10 @@ public class AddFunctionorClass implements AutoSaveCondition {
                 || element.getText().contains("long")
                 || element.getText().contains("short")
                 || element.getText().contains("byte");
+    }
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.STRUCTURE;
     }
 }

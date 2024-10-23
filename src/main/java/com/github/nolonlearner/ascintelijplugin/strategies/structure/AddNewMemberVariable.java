@@ -1,5 +1,6 @@
 package com.github.nolonlearner.ascintelijplugin.strategies.structure;
 // src/main/java/com/github/nolonlearner/ascintelijplugin/strategies/structure/AddNewMemberVariable.java
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
@@ -10,7 +11,7 @@ import com.intellij.psi.PsiElement;
     * 用于判断是否需要自动保存
  */
 public class AddNewMemberVariable implements AutoSaveCondition {
-    AutoSavePriority priority = AutoSavePriority.STRUCTURE;
+    AutoSavePriority priority = AutoSavePriority.HIGH;
     @Override
     public boolean shouldSave(AutoSaveContext context) {
         PsiElement newChild = context.getNewChild();
@@ -43,5 +44,10 @@ public class AddNewMemberVariable implements AutoSaveCondition {
         }
         // 判断是否为类的逻辑
         return element != null && element.getText().contains("class");
+    }
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.STRUCTURE;
     }
 }

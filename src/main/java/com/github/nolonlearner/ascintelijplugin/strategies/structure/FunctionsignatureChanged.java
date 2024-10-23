@@ -1,5 +1,6 @@
 package com.github.nolonlearner.ascintelijplugin.strategies.structure;
 
+import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveChangeType;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveCondition;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSaveContext;
 import com.github.nolonlearner.ascintelijplugin.services.AutoSave.AutoSavePriority;
@@ -8,7 +9,7 @@ import com.intellij.psi.PsiNamedElement;
 import com.intellij.psi.util.PsiTreeUtil;
 
 public class FunctionsignatureChanged implements AutoSaveCondition {
-    private final AutoSavePriority priority = AutoSavePriority.STRUCTURE;
+    private final AutoSavePriority priority = AutoSavePriority.HIGHEST;
 
     @Override
     public boolean shouldSave(AutoSaveContext context) {
@@ -63,5 +64,11 @@ public class FunctionsignatureChanged implements AutoSaveCondition {
         }
         // 识别是否是函数名称的变化，这部分可以通过 PsiNamedElement 检测
         return element instanceof PsiNamedElement;
+    }
+
+    // 重写 isRelevant 方法
+    @Override
+    public boolean isRelevant(AutoSaveChangeType changeType) {
+        return changeType == AutoSaveChangeType.STRUCTURE;
     }
 }
